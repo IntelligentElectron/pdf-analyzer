@@ -9,7 +9,7 @@
  * CLI flags:
  *   --version, -v    Print version and exit
  *   --update         Check for updates and apply if available
- *   --uninstall      Remove pdf-analyzer-mcp from the system
+ *   --uninstall      Remove pdf-analyzer from the system
  *   --no-update      Skip auto-update check on startup
  *   --help, -h       Show help
  *

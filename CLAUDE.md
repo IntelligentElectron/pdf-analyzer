@@ -4,6 +4,8 @@
 
 **ALWAYS use `gemini-3-pro-preview` as the model. NEVER change it to any other model (e.g., gemini-2.5-pro-preview, gemini-2.0-flash, etc.).**
 
+<https://ai.google.dev/gemini-api/docs/document-processing>
+
 ## Overview
 
 Standalone MCP server for analyzing PDF documents using Gemini API. Distributed as self-updating binaries for all platforms. Users provide their own Gemini API key.
@@ -32,11 +34,11 @@ Uses Bun to compile TypeScript into standalone executables:
 npm run compile:all
 
 # Or individual platforms
-bun build src/index.ts --compile --target=bun-darwin-arm64 --outfile=bin/pdf-analyzer-mcp-darwin-arm64
-bun build src/index.ts --compile --target=bun-darwin-x64 --outfile=bin/pdf-analyzer-mcp-darwin-x64
-bun build src/index.ts --compile --target=bun-linux-arm64 --outfile=bin/pdf-analyzer-mcp-linux-arm64
-bun build src/index.ts --compile --target=bun-linux-x64 --outfile=bin/pdf-analyzer-mcp-linux-x64
-bun build src/index.ts --compile --target=bun-windows-x64 --outfile=bin/pdf-analyzer-mcp-windows-x64.exe
+bun build src/index.ts --compile --target=bun-darwin-arm64 --outfile=bin/pdf-analyzer-darwin-arm64
+bun build src/index.ts --compile --target=bun-darwin-x64 --outfile=bin/pdf-analyzer-darwin-x64
+bun build src/index.ts --compile --target=bun-linux-arm64 --outfile=bin/pdf-analyzer-linux-arm64
+bun build src/index.ts --compile --target=bun-linux-x64 --outfile=bin/pdf-analyzer-linux-x64
+bun build src/index.ts --compile --target=bun-windows-x64 --outfile=bin/pdf-analyzer-windows-x64.exe
 ```
 
 ## Development
@@ -72,24 +74,24 @@ Bun uses JIT compilation. Without entitlements in `entitlements.plist`, signed b
 ```bash
 codesign --force --options runtime --entitlements entitlements.plist \
   --sign "Developer ID Application: Your Name ($APPLE_TEAM_ID)" \
-  pdf-analyzer-mcp-darwin-arm64
+  pdf-analyzer-darwin-arm64
 ```
 
 ### Notarization Commands
 
 ```bash
 # Create ZIP for notarization
-zip pdf-analyzer-mcp-darwin-arm64.zip pdf-analyzer-mcp-darwin-arm64
+zip pdf-analyzer-darwin-arm64.zip pdf-analyzer-darwin-arm64
 
 # Submit for notarization
-xcrun notarytool submit pdf-analyzer-mcp-darwin-arm64.zip \
+xcrun notarytool submit pdf-analyzer-darwin-arm64.zip \
   --apple-id "$APPLE_ID" \
   --password "$APPLE_APP_PASSWORD" \
   --team-id "$APPLE_TEAM_ID" \
   --wait
 
 # Staple ticket to binary
-xcrun stapler staple pdf-analyzer-mcp-darwin-arm64
+xcrun stapler staple pdf-analyzer-darwin-arm64
 ```
 
 ## Environment Variables
@@ -102,12 +104,12 @@ xcrun stapler staple pdf-analyzer-mcp-darwin-arm64
 ## CLI Commands
 
 ```bash
-pdf-analyzer-mcp              # Run server (with auto-update check)
-pdf-analyzer-mcp --version    # Print version
-pdf-analyzer-mcp --help       # Show help
-pdf-analyzer-mcp --update     # Manual update check
-pdf-analyzer-mcp --uninstall  # Remove binary and PATH entries
-pdf-analyzer-mcp --no-update  # Run without update check
+pdf-analyzer              # Run server (with auto-update check)
+pdf-analyzer --version    # Print version
+pdf-analyzer --help       # Show help
+pdf-analyzer --update     # Manual update check
+pdf-analyzer --uninstall  # Remove binary and PATH entries
+pdf-analyzer --no-update  # Run without update check
 ```
 
 ## MCP Tool: analyze_pdf
@@ -123,7 +125,7 @@ pdf-analyzer-mcp --no-update  # Run without update check
 {
   "mcpServers": {
     "pdf-analyzer": {
-      "command": "pdf-analyzer-mcp",
+      "command": "pdf-analyzer",
       "env": {
         "GEMINI_API_KEY": "your-api-key-here"
       }
@@ -137,13 +139,13 @@ pdf-analyzer-mcp --no-update  # Run without update check
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/westworld-ai/pdf-analyzer-mcp/main/install.sh | bash
+FIX
 ```
 
 ### Windows
 
 ```powershell
-irm https://raw.githubusercontent.com/westworld-ai/pdf-analyzer-mcp/main/install.ps1 | iex
+FIX
 ```
 
 ## Error Handling
@@ -167,6 +169,6 @@ Missing JIT entitlements. Add `entitlements.plist` to codesign command.
 Release marked as `prerelease: true`. GitHub `/releases/latest` ignores prereleases.
 
 ### MCP not connecting
-- Check PATH: `which pdf-analyzer-mcp`
+- Check PATH: `which pdf-analyzer`
 - Restart terminal after install
 - Verify GEMINI_API_KEY is set in MCP client config

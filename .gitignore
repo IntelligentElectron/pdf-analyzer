@@ -28,3 +28,4 @@ coverage/
 
 # Claude
 .claude/
+.mcp.json

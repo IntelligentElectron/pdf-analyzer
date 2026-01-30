@@ -108,7 +108,7 @@ const formatError = (
 export const createServer = (): McpServer => {
   const server = new McpServer(
     {
-      name: "pdf-analyzer-mcp",
+      name: "pdf-analyzer",
       version: VERSION,
     },
     {

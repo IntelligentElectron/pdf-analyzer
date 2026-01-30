@@ -1,5 +1,5 @@
 /**
- * Auto-updater for pdf-analyzer-mcp server.
+ * Auto-updater for pdf-analyzer server.
  *
  * Checks GitHub Releases for newer versions and self-updates on startup.
  * Can be disabled via PDF_MCP_NO_UPDATE=1 environment variable.
@@ -352,15 +352,15 @@ export const autoUpdate = async (): Promise<boolean> => {
   }
 
   // Log update to stderr (MCP uses stdio, so stdout is reserved)
-  console.error(`[pdf-analyzer-mcp] Updating from ${VERSION} to ${check.latestVersion}...`);
+  console.error(`[pdf-analyzer] Updating from ${VERSION} to ${check.latestVersion}...`);
 
   const result = await performUpdate(check.downloadUrl, check.latestVersion);
 
   if (!result.success) {
-    console.error(`[pdf-analyzer-mcp] Update failed: ${result.error}`);
+    console.error(`[pdf-analyzer] Update failed: ${result.error}`);
     return false;
   }
 
-  console.error(`[pdf-analyzer-mcp] Update complete. Restarting...`);
+  console.error(`[pdf-analyzer] Update complete. Restarting...`);
   return true;
 };

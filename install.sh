@@ -3,19 +3,24 @@
 # PDF Analyzer MCP Server Installer
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/westworld-ai/pdf-analyzer-mcp/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/IntelligentElectron/pdf-analyzer/main/install.sh | bash
 #
 # Environment variables:
-#   PDF_MCP_INSTALL_DIR  Installation directory (default: ~/.pdf-analyzer-mcp)
+#   PDF_MCP_INSTALL_DIR  Installation directory (default: ~/Library/Application Support/pdf-analyzer on macOS, ~/.pdf-analyzer on Linux)
 #   PDF_MCP_VERSION      Specific version to install (default: latest)
 #
 
 set -euo pipefail
 
 # Configuration
-REPO="westworld-ai/pdf-analyzer-mcp"
-BINARY_NAME="pdf-analyzer-mcp"
-DEFAULT_INSTALL_DIR="$HOME/.pdf-analyzer-mcp"
+REPO="IntelligentElectron/pdf-analyzer"
+BINARY_NAME="pdf-analyzer"
+# Set default install directory based on OS
+if [ "$(uname -s)" = "Darwin" ]; then
+    DEFAULT_INSTALL_DIR="$HOME/Library/Application Support/pdf-analyzer"
+else
+    DEFAULT_INSTALL_DIR="$HOME/.pdf-analyzer"
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -157,7 +162,7 @@ add_to_path() {
     fi
 
     # Check if already added to shell rc
-    if grep -q "pdf-analyzer-mcp" "$shell_rc" 2>/dev/null; then
+    if grep -q "pdf-analyzer" "$shell_rc" 2>/dev/null; then
         info "PATH entry already exists in $shell_rc"
         return 0
     fi
@@ -166,11 +171,11 @@ add_to_path() {
 
     if [ "$shell_name" = "fish" ]; then
         echo "" >> "$shell_rc"
-        echo "# PDF Analyzer MCP Server" >> "$shell_rc"
+        echo "# PDF Analyzer" >> "$shell_rc"
         echo "fish_add_path $bin_dir" >> "$shell_rc"
     else
         echo "" >> "$shell_rc"
-        echo "# PDF Analyzer MCP Server" >> "$shell_rc"
+        echo "# PDF Analyzer" >> "$shell_rc"
         echo "export PATH=\"$bin_dir:\$PATH\"" >> "$shell_rc"
     fi
 
@@ -248,18 +253,18 @@ main() {
     echo ""
     success "Installation complete!"
     echo ""
-    echo "To start using pdf-analyzer-mcp, either:"
+    echo "To start using pdf-analyzer, either:"
     echo "  1. Open a new terminal, or"
     echo "  2. Run: source $(get_shell_rc)"
     echo ""
     echo "Then verify with:"
-    echo "  pdf-analyzer-mcp --version"
+    echo "  pdf-analyzer --version"
     echo ""
     echo "To update, run:"
-    echo "  pdf-analyzer-mcp --update"
+    echo "  pdf-analyzer --update"
     echo ""
     echo "Configure your MCP client with:"
-    echo '  {"mcpServers": {"pdf-analyzer": {"command": "pdf-analyzer-mcp", "env": {"GEMINI_API_KEY": "your-key"}}}}'
+    echo '  {"mcpServers": {"pdf-analyzer": {"command": "pdf-analyzer", "env": {"GEMINI_API_KEY": "your-key"}}}}'
     echo ""
 }
 

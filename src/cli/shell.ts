@@ -22,8 +22,8 @@ export const getShellRcFiles = (): string[] => {
 };
 
 /**
- * Remove pdf-analyzer-mcp PATH entries from shell rc files.
- * Looks for "# PDF Analyzer MCP Server" comment blocks and removes them.
+ * Remove pdf-analyzer PATH entries from shell rc files.
+ * Looks for "# PDF Analyzer" comment blocks and removes them.
  */
 export const removeFromPath = (): string[] => {
   const modified: string[] = [];
@@ -39,8 +39,8 @@ export const removeFromPath = (): string[] => {
 
     while (i < lines.length) {
       const line = lines[i];
-      // Skip "# PDF Analyzer MCP Server" comment and the following export/fish_add_path line
-      if (line.trim() === "# PDF Analyzer MCP Server") {
+      // Skip "# PDF Analyzer" comment and the following export/fish_add_path line
+      if (line.trim() === "# PDF Analyzer") {
         changed = true;
         i++; // Skip comment
         // Skip the next line if it's the PATH export

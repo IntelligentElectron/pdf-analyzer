@@ -2,19 +2,19 @@
 # PDF Analyzer MCP Server Installer for Windows
 #
 # Usage:
-#   irm https://raw.githubusercontent.com/westworld-ai/pdf-analyzer-mcp/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/IntelligentElectron/pdf-analyzer/main/install.ps1 | iex
 #
 # Environment variables:
-#   PDF_MCP_INSTALL_DIR  Installation directory (default: %LOCALAPPDATA%\pdf-analyzer-mcp)
+#   PDF_MCP_INSTALL_DIR  Installation directory (default: %LOCALAPPDATA%\pdf-analyzer)
 #   PDF_MCP_VERSION      Specific version to install (default: latest)
 #
 
 $ErrorActionPreference = "Stop"
 
 # Configuration
-$Repo = "westworld-ai/pdf-analyzer-mcp"
-$BinaryName = "pdf-analyzer-mcp"
-$DefaultInstallDir = Join-Path $env:LOCALAPPDATA "pdf-analyzer-mcp"
+$Repo = "IntelligentElectron/pdf-analyzer"
+$BinaryName = "pdf-analyzer"
+$DefaultInstallDir = Join-Path $env:LOCALAPPDATA "pdf-analyzer"
 
 # Logging functions
 function Write-Info { param($Message) Write-Host "[INFO] " -ForegroundColor Blue -NoNewline; Write-Host $Message }
@@ -26,14 +26,14 @@ function Get-Platform {
     $arch = $env:PROCESSOR_ARCHITECTURE
 
     switch ($arch) {
-        "AMD64" { return "pdf-analyzer-mcp-windows-x64.exe" }
+        "AMD64" { return "pdf-analyzer-windows-x64.exe" }
         "x86" {
             Write-Err "32-bit Windows is not supported"
             exit 1
         }
         "ARM64" {
             Write-Warn "Native ARM64 binary not available, using x64-baseline (runs via emulation)"
-            return "pdf-analyzer-mcp-windows-x64-baseline.exe"
+            return "pdf-analyzer-windows-x64-baseline.exe"
         }
         default {
             Write-Err "Unsupported architecture: $arch"
@@ -211,13 +211,13 @@ function Install-PdfAnalyzerMcp {
     Write-Success "Installation complete!"
     Write-Host ""
     Write-Host "Verify with:"
-    Write-Host "  pdf-analyzer-mcp --version"
+    Write-Host "  pdf-analyzer --version"
     Write-Host ""
     Write-Host "To update, run:"
-    Write-Host "  pdf-analyzer-mcp --update"
+    Write-Host "  pdf-analyzer --update"
     Write-Host ""
     Write-Host "Configure your MCP client with:"
-    Write-Host '  {"mcpServers": {"pdf-analyzer": {"command": "pdf-analyzer-mcp", "env": {"GEMINI_API_KEY": "your-key"}}}}'
+    Write-Host '  {"mcpServers": {"pdf-analyzer": {"command": "pdf-analyzer", "env": {"GEMINI_API_KEY": "your-key"}}}}'
     Write-Host ""
 }
 

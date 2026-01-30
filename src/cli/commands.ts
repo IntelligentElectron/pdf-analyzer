@@ -124,7 +124,7 @@ export const handleUpdateCommand = async (): Promise<void> => {
 };
 
 /**
- * Handle the --uninstall flag: remove pdf-analyzer-mcp from the system.
+ * Handle the --uninstall flag: remove pdf-analyzer from the system.
  */
 export const handleUninstallCommand = async (): Promise<void> => {
   const home = os.homedir();
