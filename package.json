@@ -1,0 +1,61 @@
+{
+  "name": "@westworld/pdf-analyzer-mcp",
+  "version": "0.0.1",
+  "description": "MCP server for analyzing PDF documents using Gemini API",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "pdf-analyzer-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "compile:all": "npm run compile:darwin-arm64 && npm run compile:darwin-x64 && npm run compile:linux-arm64 && npm run compile:linux-x64 && npm run compile:windows-x64",
+    "compile:darwin-arm64": "bun build src/index.ts --compile --target=bun-darwin-arm64 --outfile=bin/pdf-analyzer-mcp-darwin-arm64",
+    "compile:darwin-x64": "bun build src/index.ts --compile --target=bun-darwin-x64 --outfile=bin/pdf-analyzer-mcp-darwin-x64",
+    "compile:linux-arm64": "bun build src/index.ts --compile --target=bun-linux-arm64 --outfile=bin/pdf-analyzer-mcp-linux-arm64",
+    "compile:linux-x64": "bun build src/index.ts --compile --target=bun-linux-x64 --outfile=bin/pdf-analyzer-mcp-linux-x64",
+    "compile:windows-x64": "bun build src/index.ts --compile --target=bun-windows-x64 --outfile=bin/pdf-analyzer-mcp-windows-x64.exe"
+  },
+  "dependencies": {
+    "@google/genai": "^1.37.0",
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^22.15.21",
+    "eslint": "^9.18.0",
+    "eslint-plugin-jsdoc": "^50.6.17",
+    "prettier": "^3.8.1",
+    "tsx": "^4.19.4",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.32.1",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/westworld-ai/pdf-analyzer-mcp.git"
+  },
+  "keywords": [
+    "mcp",
+    "pdf",
+    "gemini",
+    "ai",
+    "document-analysis"
+  ]
+}
