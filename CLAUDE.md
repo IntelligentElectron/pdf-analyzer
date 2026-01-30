@@ -4,7 +4,9 @@
 
 **ALWAYS use `gemini-3-pro-preview` as the model. NEVER change it to any other model (e.g., gemini-2.5-pro-preview, gemini-2.0-flash, etc.).**
 
-<https://ai.google.dev/gemini-api/docs/document-processing>
+- <https://ai.google.dev/gemini-api/docs/document-processing>
+- <https://ai.google.dev/gemini-api/docs/document-processing#large-pdfs> (File API for large PDFs)
+- <https://ai.google.dev/gemini-api/docs/files> (Files API reference)
 
 ## Overview
 
