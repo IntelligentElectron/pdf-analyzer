@@ -1,0 +1,161 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate CHANGELOG has release notes
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          if ! grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            echo "::error::No release notes found in CHANGELOG.md for version $VERSION"
+            echo "Add a section like '## [$VERSION] - $(date +%Y-%m-%d)' to CHANGELOG.md"
+            exit 1
+          fi
+          echo "Found release notes for version $VERSION"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build all platforms
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          mkdir -p bin
+          bun build --compile --minify --target=bun-darwin-arm64 --define BUILD_VERSION="\"$VERSION\"" src/index.ts --outfile bin/pdf-analyzer-darwin-arm64
+          bun build --compile --minify --target=bun-darwin-x64 --define BUILD_VERSION="\"$VERSION\"" src/index.ts --outfile bin/pdf-analyzer-darwin-x64
+          bun build --compile --minify --target=bun-linux-arm64 --define BUILD_VERSION="\"$VERSION\"" src/index.ts --outfile bin/pdf-analyzer-linux-arm64
+          bun build --compile --minify --target=bun-linux-x64 --define BUILD_VERSION="\"$VERSION\"" src/index.ts --outfile bin/pdf-analyzer-linux-x64
+          bun build --compile --minify --target=bun-windows-x64 --define BUILD_VERSION="\"$VERSION\"" src/index.ts --outfile bin/pdf-analyzer-windows-x64.exe
+
+      - name: Import Apple certificate
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create temporary keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import certificate
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+          # Allow codesign to access the key
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Sign macOS binaries
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cd bin
+
+          # Sign both macOS binaries with JIT entitlements (required for Bun runtime)
+          codesign --force --options runtime --entitlements ../entitlements.plist --sign "Developer ID Application: Valentino Zegna Baruffa ($APPLE_TEAM_ID)" pdf-analyzer-darwin-arm64
+          codesign --force --options runtime --entitlements ../entitlements.plist --sign "Developer ID Application: Valentino Zegna Baruffa ($APPLE_TEAM_ID)" pdf-analyzer-darwin-x64
+
+          # Verify signatures
+          codesign --verify --verbose pdf-analyzer-darwin-arm64
+          codesign --verify --verbose pdf-analyzer-darwin-x64
+
+      - name: Notarize macOS binaries
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cd bin
+
+          # Create ZIP files for notarization
+          zip pdf-analyzer-darwin-arm64.zip pdf-analyzer-darwin-arm64
+          zip pdf-analyzer-darwin-x64.zip pdf-analyzer-darwin-x64
+
+          # Notarize ARM64
+          xcrun notarytool submit pdf-analyzer-darwin-arm64.zip \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+
+          # Notarize x64
+          xcrun notarytool submit pdf-analyzer-darwin-x64.zip \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+
+          # Clean up zips
+          rm *.zip
+
+      - name: Generate checksums
+        run: |
+          cd bin
+          shasum -a 256 pdf-analyzer-* > checksums.txt
+          cat checksums.txt
+
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          # Extract section between current version header and next version header (or EOF)
+          NOTES=$(awk -v ver="$VERSION" '
+            /^## \[/ { if (found) exit; if ($0 ~ "\\[" ver "\\]") found=1; next }
+            /^\[.*\]:/ { exit }
+            found { print }
+          ' CHANGELOG.md)
+
+          # Use delimiter for multiline output
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ steps.version.outputs.version }}
+          body: |
+            ${{ steps.changelog.outputs.notes }}
+
+            ## Installation
+
+            See [README](https://github.com/IntelligentElectron/pdf-analyzer#installation) for installation instructions.
+
+            ## Checksums
+
+            See `checksums.txt` for SHA256 checksums.
+          files: |
+            bin/pdf-analyzer-darwin-arm64
+            bin/pdf-analyzer-darwin-x64
+            bin/pdf-analyzer-linux-arm64
+            bin/pdf-analyzer-linux-x64
+            bin/pdf-analyzer-windows-x64.exe
+            bin/checksums.txt
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
