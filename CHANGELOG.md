@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.0.3] - 2026-02-02
+
+### Added
+- 60-second timeout for URL fetching to prevent indefinite hangs
+
 ## [0.0.2] - 2026-02-01
 
 ### Added

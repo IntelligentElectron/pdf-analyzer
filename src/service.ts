@@ -96,20 +96,31 @@ export function validateLocalPath(pdfPath: string): void {
   }
 }
 
+/** Timeout for fetching PDFs from URLs (60 seconds) */
+const FETCH_TIMEOUT_MS = 60_000;
+
 /**
- * Fetch PDF content from a URL.
+ * Fetch PDF content from a URL with timeout.
  */
 async function fetchPdfFromUrl(url: string): Promise<Buffer> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
   let response: Response;
   try {
-    response = await fetch(url);
+    response = await fetch(url, { signal: controller.signal });
   } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Request timed out after ${FETCH_TIMEOUT_MS / 1000}s`);
+    }
     const message = error instanceof Error ? error.message : "Unknown error";
     throw new Error(`Failed to fetch URL: ${message}`);
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch PDF from URL: ${response.status} ${response.statusText}`);
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
 
   const contentType = response.headers.get("content-type");
