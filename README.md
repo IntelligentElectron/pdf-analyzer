@@ -32,6 +32,8 @@ Why use the native installer:
 
 ### Update
 
+The server checks for updates on startup. To update manually:
+
 ```bash
 pdf-analyzer --update
 ```
@@ -144,6 +146,18 @@ The server accepts:
 | Linux (ARM64) | `pdf-analyzer-linux-arm64` |
 | Windows (x64) | `pdf-analyzer-windows-x64.exe` |
 
+## Documentation
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
+
+---
+
+## About
+
+Created by **Valentino Zegna**
+
+This project is hosted on GitHub under the [IntelligentElectron](https://github.com/IntelligentElectron) organization.
+
 ## License
 
-Apache-2.0
+Apache License 2.0 - see [LICENSE](LICENSE)
