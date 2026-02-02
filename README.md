@@ -42,7 +42,13 @@ pdf-analyzer --update
 
 1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
 2. Create a new API key (free tier available)
-3. Add the key to your MCP client configuration (see below)
+3. Create a `.env` file in your project folder:
+
+```
+GEMINI_API_KEY=your-api-key-here
+```
+
+The server automatically loads the API key from `.env` in your current working directory.
 
 ## Connect the MCP with your favorite AI tool
 
@@ -55,10 +61,7 @@ or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 {
   "mcpServers": {
     "pdf-analyzer": {
-      "command": "pdf-analyzer",
-      "env": {
-        "GEMINI_API_KEY": "your-api-key-here"
-      }
+      "command": "pdf-analyzer"
     }
   }
 }
@@ -67,56 +70,110 @@ or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 <details>
 <summary><strong>Claude Code</strong></summary>
 
-Add to your `~/.claude/settings.json`:
+```bash
+claude mcp add pdf-analyzer -- pdf-analyzer
+```
 
-```json
-{
-  "mcpServers": {
-    "pdf-analyzer": {
-      "command": "pdf-analyzer",
-      "env": {
-        "GEMINI_API_KEY": "your-api-key-here"
-      }
-    }
-  }
-}
+Or using the standalone binary path:
+
+macOS:
+
+```bash
+claude mcp add pdf-analyzer -- ~/Library/Application\ Support/pdf-analyzer/bin/pdf-analyzer
+```
+
+Linux:
+
+```bash
+claude mcp add pdf-analyzer -- ~/.pdf-analyzer/bin/pdf-analyzer
 ```
 
 </details>
 
 <details>
-<summary><strong>VS Code (Copilot/Continue)</strong></summary>
+<summary><strong>VS Code (GitHub Copilot)</strong></summary>
 
-Add to your VS Code `settings.json`:
+Add to `.vscode/mcp.json` in your project.
+
+**macOS:**
 
 ```json
 {
-  "mcp.servers": {
+  "servers": {
     "pdf-analyzer": {
-      "command": "pdf-analyzer",
-      "env": {
-        "GEMINI_API_KEY": "your-api-key-here"
-      }
+      "type": "stdio",
+      "command": "/Users/YOUR_USERNAME/Library/Application Support/pdf-analyzer/bin/pdf-analyzer"
     }
   }
 }
 ```
+
+**Linux:**
+
+```json
+{
+  "servers": {
+    "pdf-analyzer": {
+      "type": "stdio",
+      "command": "/home/YOUR_USERNAME/.pdf-analyzer/bin/pdf-analyzer"
+    }
+  }
+}
+```
+
+**Windows:**
+
+```json
+{
+  "servers": {
+    "pdf-analyzer": {
+      "type": "stdio",
+      "command": "C:\\Users\\YOUR_USERNAME\\AppData\\Local\\pdf-analyzer\\bin\\pdf-analyzer.exe"
+    }
+  }
+}
+```
+
+Then enable in **Configure Tools** (click the tools icon in Copilot chat).
 
 </details>
 
 <details>
 <summary><strong>Gemini CLI</strong></summary>
 
-Add to `~/.gemini/settings.json`:
+Add to `~/.gemini/settings.json` (global) or `.gemini/settings.json` (project).
+
+**macOS:**
 
 ```json
 {
   "mcpServers": {
     "pdf-analyzer": {
-      "command": "pdf-analyzer",
-      "env": {
-        "GEMINI_API_KEY": "your-api-key-here"
-      }
+      "command": "/Users/YOUR_USERNAME/Library/Application Support/pdf-analyzer/bin/pdf-analyzer"
+    }
+  }
+}
+```
+
+**Linux:**
+
+```json
+{
+  "mcpServers": {
+    "pdf-analyzer": {
+      "command": "/home/YOUR_USERNAME/.pdf-analyzer/bin/pdf-analyzer"
+    }
+  }
+}
+```
+
+**Windows:**
+
+```json
+{
+  "mcpServers": {
+    "pdf-analyzer": {
+      "command": "C:\\Users\\YOUR_USERNAME\\AppData\\Local\\pdf-analyzer\\bin\\pdf-analyzer.exe"
     }
   }
 }

@@ -1,8 +1,32 @@
 import { GoogleGenAI, ApiError, ThinkingLevel } from "@google/genai";
+import { readFileSync, existsSync } from "node:fs";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { join } from "node:path";
 import type { AnalyzePdfInput, AnalyzePdfResponse, QueryResponse } from "./types.js";
 import { GeminiResponseSchema } from "./types.js";
+
+/**
+ * Load environment variables from .env file in current working directory.
+ * Only sets variables that are not already defined in process.env.
+ */
+function loadEnvFile(): void {
+  const envPath = join(process.cwd(), ".env");
+  if (!existsSync(envPath)) return;
+
+  const content = readFileSync(envPath, "utf-8");
+  for (const line of content.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex === -1) continue;
+    const key = trimmed.slice(0, eqIndex).trim();
+    const value = trimmed.slice(eqIndex + 1).trim().replace(/^["']|["']$/g, "");
+    if (!process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+}
 
 const SYSTEM_INSTRUCTION = `You are a document analysis assistant. Analyze PDF documents and answer questions based on their content.
 For each question, provide a clear, detailed answer based on the content of the PDF.
@@ -14,9 +38,10 @@ const GEMINI_FILE_URI_PREFIX = "https://generativelanguage.googleapis.com/";
 
 /**
  * Creates and returns a configured GoogleGenAI client.
- * Requires GEMINI_API_KEY environment variable to be set.
+ * Loads GEMINI_API_KEY from .env file if not already set in environment.
  */
 export function createGeminiClient(): GoogleGenAI {
+  loadEnvFile();
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY not set. Get your key from https://aistudio.google.com/apikey");
