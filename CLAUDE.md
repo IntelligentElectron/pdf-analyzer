@@ -46,8 +46,8 @@ bun build src/index.ts --compile --target=bun-windows-x64 --outfile=bin/pdf-anal
 ## Development
 
 ```bash
-# Install dependencies (MUST use bun, not npm)
-bun install
+# Install dependencies
+npm install
 
 # Run in development mode
 npm run dev
@@ -174,5 +174,11 @@ Release marked as `prerelease: true`. GitHub `/releases/latest` ignores prerelea
 - Restart terminal after install
 - Verify GEMINI_API_KEY is set in MCP client config
 
-### Release workflow fails with 404 on npm packages
-NEVER commit `package-lock.json`. The release workflow uses Bun, which can't parse npm's package alias syntax (`string-width-cjs` etc). Only `bun.lock` should be committed. If you accidentally run `npm install`, delete `package-lock.json` before committing.
+### npm OIDC Publishing
+
+npm publishing uses OIDC trusted publishing (configured on npmjs.com) - no tokens required.
+
+**Gotchas:**
+- Do NOT use `registry-url` with `actions/setup-node` - it creates a `.npmrc` that breaks OIDC
+- OIDC requires npm 11.5.1+ (Node 22 ships with older npm, so we explicitly upgrade)
+- Never commit `bun.lock` - only `package-lock.json` should be committed

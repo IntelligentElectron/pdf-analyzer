@@ -38,6 +38,28 @@ The server checks for updates on startup. To update manually:
 pdf-analyzer --update
 ```
 
+## Alternative: Install via npm
+
+For developers who prefer npm:
+
+```bash
+npm install -g @intelligentelectron/pdf-analyzer
+```
+
+Or use with npx (no installation required):
+
+```bash
+npx @intelligentelectron/pdf-analyzer --help
+```
+
+Requires Node.js 20+.
+
+To update:
+
+```bash
+npm update -g @intelligentelectron/pdf-analyzer
+```
+
 ## Get Your Gemini API Key
 
 1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
