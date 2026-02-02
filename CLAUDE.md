@@ -181,4 +181,4 @@ npm publishing uses OIDC trusted publishing (configured on npmjs.com) - no token
 **Gotchas:**
 - Do NOT use `registry-url` with `actions/setup-node` - it creates a `.npmrc` that breaks OIDC
 - OIDC requires npm 11.5.1+ (Node 22 ships with older npm, so we explicitly upgrade)
-- Never commit `bun.lock` - only `package-lock.json` should be committed
+- Don't commit any lockfile (cross-platform optional deps like rollup cause CI failures)
