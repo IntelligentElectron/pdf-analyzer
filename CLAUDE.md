@@ -118,7 +118,7 @@ pdf-analyzer --no-update  # Run without update check
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `pdf_path` | `string` | Yes | Absolute path to PDF file |
+| `pdf_path` | `string` | Yes | Path to PDF file (relative to CWD or absolute) |
 | `queries` | `string[]` | Yes | Questions to ask about the PDF |
 
 ## MCP Client Configuration

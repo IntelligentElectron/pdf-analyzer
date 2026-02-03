@@ -1,3 +1,4 @@
+import path from "node:path";
 import { describe, it, expect } from "vitest";
 import { isGeminiFileUri, isUrl, validateLocalPath } from "./service.js";
 import { AnalyzePdfInputSchema } from "./types.js";
@@ -60,9 +61,10 @@ describe("isUrl", () => {
 });
 
 describe("validateLocalPath", () => {
-  it("throws for relative paths", () => {
-    expect(() => validateLocalPath("./test.pdf")).toThrow("must be absolute");
-    expect(() => validateLocalPath("test.pdf")).toThrow("must be absolute");
+  it("resolves relative paths against CWD", () => {
+    const resolved = validateLocalPath("test/fixtures/m3000a.pdf");
+    expect(path.isAbsolute(resolved)).toBe(true);
+    expect(resolved).toBe(path.resolve("test/fixtures/m3000a.pdf"));
   });
 
   it("throws for non-existent files", () => {
@@ -79,15 +81,18 @@ describe("validateLocalPath", () => {
   });
 
   it("trims whitespace from paths", () => {
-    expect(() => validateLocalPath("   ")).toThrow("must be absolute");
     expect(() => validateLocalPath("  /nonexistent.pdf  ")).toThrow("not found");
   });
 
-  it("accepts valid PDF files", () => {
-    // Use a PDF that exists in our test fixtures
-    expect(() =>
-      validateLocalPath(process.cwd() + "/test/fixtures/m3000a.pdf")
-    ).not.toThrow();
+  it("accepts valid PDF files with relative path", () => {
+    const resolved = validateLocalPath("test/fixtures/m3000a.pdf");
+    expect(resolved).toBe(path.resolve("test/fixtures/m3000a.pdf"));
+  });
+
+  it("accepts valid PDF files with absolute path", () => {
+    const absPath = process.cwd() + "/test/fixtures/m3000a.pdf";
+    const resolved = validateLocalPath(absPath);
+    expect(resolved).toBe(absPath);
   });
 });
 

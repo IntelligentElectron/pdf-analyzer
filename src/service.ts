@@ -1,7 +1,7 @@
 import { GoogleGenAI, ApiError, ThinkingLevel } from "@google/genai";
 import { readFileSync, existsSync } from "node:fs";
 import * as fs from "node:fs";
-import * as path from "node:path";
+import { resolvePath } from "./paths.js";
 import { join } from "node:path";
 import type { AnalyzePdfInput, AnalyzePdfResponse, QueryResponse } from "./types.js";
 import { GeminiResponseSchema } from "./types.js";
@@ -72,28 +72,27 @@ export function isUrl(source: string): boolean {
 }
 
 /**
- * Validates a local PDF file path.
+ * Validates a local PDF file path and resolves it to an absolute path.
+ * Relative paths are resolved against the current working directory.
  * Throws descriptive errors for common issues.
  */
-export function validateLocalPath(pdfPath: string): void {
-  const trimmedPath = pdfPath.trim();
+export function validateLocalPath(pdfPath: string): string {
+  const resolvedPath = resolvePath(pdfPath.trim());
 
-  if (!path.isAbsolute(trimmedPath)) {
-    throw new Error(`PDF path must be absolute: ${trimmedPath}`);
+  if (!fs.existsSync(resolvedPath)) {
+    throw new Error(`PDF file not found: ${resolvedPath}`);
   }
 
-  if (!fs.existsSync(trimmedPath)) {
-    throw new Error(`PDF file not found: ${trimmedPath}`);
-  }
-
-  const stats = fs.statSync(trimmedPath);
+  const stats = fs.statSync(resolvedPath);
   if (stats.isDirectory()) {
-    throw new Error(`Path is a directory, not a file: ${trimmedPath}`);
+    throw new Error(`Path is a directory, not a file: ${resolvedPath}`);
   }
 
-  if (!trimmedPath.toLowerCase().endsWith(".pdf")) {
-    throw new Error(`File is not a PDF: ${trimmedPath}`);
+  if (!resolvedPath.toLowerCase().endsWith(".pdf")) {
+    throw new Error(`File is not a PDF: ${resolvedPath}`);
   }
+
+  return resolvedPath;
 }
 
 /** Timeout for fetching PDFs from URLs (60 seconds) */
@@ -178,9 +177,9 @@ async function uploadPdf(client: GoogleGenAI, source: string): Promise<string> {
       config: { mimeType: "application/pdf" },
     });
   } else {
-    validateLocalPath(source);
+    const resolvedPath = validateLocalPath(source);
     file = await client.files.upload({
-      file: source,
+      file: resolvedPath,
       config: { mimeType: "application/pdf" },
     });
   }

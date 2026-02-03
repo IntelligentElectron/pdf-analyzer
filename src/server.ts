@@ -21,7 +21,7 @@ Analyzes PDF documents using Gemini's vision capabilities.
 
 ## Tool: analyze_pdf
 
-Pass an absolute file path or URL and a list of queries. The server reads the PDF,
+Pass a file path, URL, or Gemini file URI and a list of queries. The server reads the PDF,
 sends it to Gemini with your queries, and returns structured responses.
 
 ## Caching Strategy
@@ -30,7 +30,7 @@ The response includes a \`file_uri\` (Gemini File API URI) that you should reuse
 queries on the same document. This avoids re-uploading and is cached by Gemini for 48 hours.
 
 **Input types accepted:**
-- Local file path: \`/Users/name/docs/report.pdf\`
+- Local file path: \`report.pdf\` or \`/Users/name/docs/report.pdf\`
 - Web URL: \`https://example.com/doc.pdf\`
 - Gemini file URI: \`https://generativelanguage.googleapis.com/v1beta/files/abc123\` (from previous response)
 
@@ -48,7 +48,7 @@ queries on the same document. This avoids re-uploading and is cached by Gemini f
 
 \`\`\`json
 {
-  "pdf_source": "/path/to/document.pdf",
+  "pdf_source": "document.pdf",
   "queries": [
     "What is the main topic of this document?",
     "List all the key findings mentioned",
@@ -61,7 +61,7 @@ queries on the same document. This avoids re-uploading and is cached by Gemini f
 
 Common errors and solutions:
 - Missing GEMINI_API_KEY: Set the environment variable with your API key
-- PDF not found: Verify the path is absolute and file exists
+- PDF not found: Verify the file exists at the given path
 - URL fetch failed: Check that the URL is accessible and points to a valid PDF
 
 ## Environment Variables
@@ -126,12 +126,12 @@ export const createServer = (): McpServer => {
     "analyze_pdf",
     {
       description:
-        "Analyze a PDF document using Gemini AI. Provide an absolute file path, URL, or Gemini file URI (from a previous response) and a list of questions to ask about the PDF content. Returns a file_uri that can be reused for subsequent queries on the same document (cached by Gemini for 48 hours).",
+        "Analyze a PDF document using Gemini AI. Provide a local file path (relative to CWD or absolute), URL, or Gemini file URI (from a previous response) and a list of questions to ask about the PDF content. Returns a file_uri that can be reused for subsequent queries on the same document (cached by Gemini for 48 hours).",
       inputSchema: {
         pdf_source: z
           .string()
           .describe(
-            "PDF source: absolute local file path (e.g., /Users/name/docs/report.pdf), URL (e.g., https://example.com/doc.pdf), or Gemini file URI from a previous response (e.g., https://generativelanguage.googleapis.com/v1beta/files/abc123)"
+            "PDF source: local file path (e.g., report.pdf or /Users/name/docs/report.pdf), URL (e.g., https://example.com/doc.pdf), or Gemini file URI from a previous response (e.g., https://generativelanguage.googleapis.com/v1beta/files/abc123)"
           ),
         queries: z.array(z.string().min(1)).min(1).describe("Array of questions to ask about the PDF"),
       },
@@ -159,7 +159,7 @@ export const createServer = (): McpServer => {
         }
 
         if (message.includes("not found")) {
-          return formatError(message, "Ensure the path is absolute and the file exists.");
+          return formatError(message, "Ensure the file exists at the given path.");
         }
 
         if (message.includes("Failed to fetch PDF from URL")) {
