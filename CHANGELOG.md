@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.0.4] - 2026-02-03
+
+### Added
+- npm publishing support (`npx @intelligentelectron/pdf-analyzer`)
+- Accept relative paths in `analyze_pdf` tool
+
 ## [0.0.3] - 2026-02-02
 
 ### Added
