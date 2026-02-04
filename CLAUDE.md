@@ -18,7 +18,8 @@ Standalone MCP server for analyzing PDF documents using Gemini API. Distributed 
 src/
 ├── index.ts          # CLI entry point, flag parsing
 ├── server.ts         # MCP server setup, tool registration
-├── service.ts        # Gemini API integration
+├── service.ts        # Gemini API integration, chunked processing
+├── chunker.ts        # PDF splitting (pdf-lib)
 ├── types.ts          # TypeScript types
 ├── version.ts        # VERSION, GITHUB_REPO, BINARY_NAME
 └── cli/
@@ -46,8 +47,8 @@ bun build src/index.ts --compile --target=bun-windows-x64 --outfile=bin/pdf-anal
 ## Development
 
 ```bash
-# Install dependencies
-npm install
+# Install dependencies (prefer bun over npm)
+bun install
 
 # Run in development mode
 npm run dev
@@ -64,6 +65,32 @@ npm run lint
 # Test
 npm test
 ```
+
+Before committing:
+
+```bash
+npm run type-check && npm run lint && npm test
+```
+
+## Release Process
+
+Branch protection requires releases to go through a PR:
+
+1. `git checkout -b release/vX.Y.Z`
+2. Update `CHANGELOG.md` with new version section
+3. `git commit -am "Add vX.Y.Z changelog"`
+4. `npm version patch -m "v%s"` (bumps `package.json`, creates commit)
+5. Push branch and open PR: `git push -u origin release/vX.Y.Z && gh pr create`
+6. Merge the PR
+7. Tag the merge commit and push:
+
+   ```bash
+   git checkout main && git pull
+   git tag vX.Y.Z
+   git push origin vX.Y.Z
+   ```
+
+The tag push triggers the release workflow. GitHub Actions handles: binary builds, macOS signing/notarization, GitHub Release creation.
 
 ## Apple Code Signing & Notarization
 
@@ -118,7 +145,7 @@ pdf-analyzer --no-update  # Run without update check
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `pdf_path` | `string` | Yes | Absolute path to PDF file |
+| `pdf_source` | `string \| string[]` | Yes | File path, URL, Gemini URI, or array of cached URIs |
 | `queries` | `string[]` | Yes | Questions to ask about the PDF |
 
 ## MCP Client Configuration
@@ -155,7 +182,8 @@ FIX
 |----------|----------|
 | Missing GEMINI_API_KEY | Error with setup instructions |
 | PDF not found | Error with validated path |
-| PDF too large (>20MB) | Error suggesting File API |
+| PDF exceeds token limit | Auto-split into chunks and retry |
+| Single page exceeds limit | Error (cannot split further) |
 | Gemini API error | Pass through with context |
 
 ## Common Issues
@@ -181,4 +209,5 @@ npm publishing uses OIDC trusted publishing (configured on npmjs.com) - no token
 **Gotchas:**
 - Do NOT use `registry-url` with `actions/setup-node` - it creates a `.npmrc` that breaks OIDC
 - OIDC requires npm 11.5.1+ (Node 22 ships with older npm, so we explicitly upgrade)
+- Use `npm install` not `npm ci` (stricter lockfile validation fails with cross-platform optional deps)
 - Don't commit any lockfile (cross-platform optional deps like rollup cause CI failures)

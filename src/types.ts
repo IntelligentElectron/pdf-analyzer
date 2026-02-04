@@ -3,7 +3,11 @@ import { Type, type Schema } from "@google/genai";
 
 /** Schema for the analyze_pdf tool input */
 export const AnalyzePdfInputSchema = z.object({
-  pdf_source: z.string().describe("PDF source: absolute local file path or URL"),
+  pdf_source: z
+    .union([z.string(), z.array(z.string().min(1)).min(1)])
+    .describe(
+      "PDF source: file path, URL, single Gemini file URI, or array of Gemini file URIs from a previous chunked response"
+    ),
   queries: z.array(z.string().min(1)).min(1).describe("Array of questions to ask about the PDF"),
 });
 
@@ -18,8 +22,8 @@ export interface QueryResponse {
 
 /** Response from the analyze_pdf tool */
 export interface AnalyzePdfResponse {
-  pdf_source: string;
-  file_uri: string;
+  pdf_source: string | string[];
+  cached_uris: string[];
   responses: QueryResponse[];
 }
 
@@ -45,6 +49,40 @@ export const GeminiResponseSchema: Schema = {
   },
   required: ["responses"],
 };
+
+/**
+ * Gemini response schema for chunked PDF processing.
+ * Extends the base schema with a findings_summary field for rolling context.
+ */
+export const ChunkedGeminiResponseSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    responses: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          query: { type: Type.STRING, description: "The original question" },
+          answer: { type: Type.STRING, description: "The answer based on PDF content" },
+        },
+        required: ["query", "answer"],
+      },
+      description: "Array of query-answer pairs",
+    },
+    findings_summary: {
+      type: Type.STRING,
+      description:
+        "Summary of findings so far across all processed chunks. Include page citations, partial answers, and what remains unanswered.",
+    },
+  },
+  required: ["responses", "findings_summary"],
+};
+
+/** Response from a chunked Gemini call, including rolling findings */
+export interface ChunkedQueryResponse {
+  responses: QueryResponse[];
+  findings_summary: string;
+}
 
 /** Error response from the tool */
 export interface ToolError {

@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.0] - 2026-02-04
+
+### Added
+- Automatic chunked processing for large PDFs that exceed Gemini's token limit
+- Try-and-split algorithm: tries the full PDF first, splits in half on token limit error, retries
+- Rolling context across chunks preserves findings from earlier sections
+- `cached_uris` array in responses for re-analyzing previously chunked documents
+- `pdf_source` now accepts `string[]` (array of cached Gemini URIs) for chunk re-analysis
+- New dependency: `pdf-lib` for PDF page splitting
+
+### Changed
+- Renamed response field `file_uri` to `cached_uris` (now always an array)
+- `pdf_source` input accepts file paths, URLs, single Gemini URIs, or arrays of Gemini URIs
+
 ## [0.0.5] - 2026-02-04
 
 ### Changed
