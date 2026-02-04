@@ -75,7 +75,7 @@ After installing the MCP with one of the methods above, you can connect it to yo
 Install [Claude Code](https://docs.anthropic.com/en/docs/claude-code), then run:
 
 ```bash
-claude mcp add --scope user --env GEMINI_API_KEY=your-key pdf-analyzer -- pdf-analyzer
+claude mcp add --scope user pdf-analyzer --env GEMINI_API_KEY=your-key -- pdf-analyzer
 ```
 
 ### OpenAI Codex
