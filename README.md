@@ -74,134 +74,63 @@ The server automatically loads the API key from `.env` in your current working d
 
 ## Connect the MCP with your favorite AI tool
 
+After installing the MCP with one of the methods above, you can connect it to your AI agent of choice.
+
 ### Claude Desktop
 
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
-or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+1. Download the [Claude Desktop app](https://claude.ai/download)
+2. Open Claude Desktop and go to **Settings** (gear icon)
+3. Under **Desktop app**, click **Extensions**
+4. Click **Advanced settings**
+5. In the **Extension Developer** section, click **Install Extension...**
+6. Navigate to your install directory and select `pdf-analyzer.mcpb`:
+   - **macOS**: `~/Library/Application Support/pdf-analyzer/pdf-analyzer.mcpb`
+   - **Windows**: `%LOCALAPPDATA%\pdf-analyzer\pdf-analyzer.mcpb`
+
+The extension will be available immediately in your conversations.
+
+### Claude Code
+
+Install [Claude Code](https://docs.anthropic.com/en/docs/claude-code), then run:
+
+```bash
+claude mcp add --scope user --env GEMINI_API_KEY=your-key pdf-analyzer -- pdf-analyzer
+```
+
+### OpenAI Codex
+
+Install [OpenAI Codex](https://github.com/openai/codex), then run:
+
+```bash
+codex mcp add pdf-analyzer --env GEMINI_API_KEY=your-key -- pdf-analyzer
+```
+
+### Gemini CLI
+
+Install [Gemini CLI](https://github.com/google-gemini/gemini-cli), then run:
+
+```bash
+gemini mcp add --scope user -e GEMINI_API_KEY=your-key pdf-analyzer pdf-analyzer
+```
+
+### VS Code (GitHub Copilot)
+
+Download [VS Code](https://code.visualstudio.com/)
+
+Add to `.vscode/mcp.json` in your project:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "pdf-analyzer": {
+      "type": "stdio",
       "command": "pdf-analyzer"
     }
   }
 }
 ```
 
-<details>
-<summary><strong>Claude Code</strong></summary>
-
-```bash
-claude mcp add pdf-analyzer -- pdf-analyzer
-```
-
-Or using the standalone binary path:
-
-macOS:
-
-```bash
-claude mcp add pdf-analyzer -- ~/Library/Application\ Support/pdf-analyzer/bin/pdf-analyzer
-```
-
-Linux:
-
-```bash
-claude mcp add pdf-analyzer -- ~/.pdf-analyzer/bin/pdf-analyzer
-```
-
-</details>
-
-<details>
-<summary><strong>VS Code (GitHub Copilot)</strong></summary>
-
-Add to `.vscode/mcp.json` in your project.
-
-**macOS:**
-
-```json
-{
-  "servers": {
-    "pdf-analyzer": {
-      "type": "stdio",
-      "command": "/Users/YOUR_USERNAME/Library/Application Support/pdf-analyzer/bin/pdf-analyzer"
-    }
-  }
-}
-```
-
-**Linux:**
-
-```json
-{
-  "servers": {
-    "pdf-analyzer": {
-      "type": "stdio",
-      "command": "/home/YOUR_USERNAME/.pdf-analyzer/bin/pdf-analyzer"
-    }
-  }
-}
-```
-
-**Windows:**
-
-```json
-{
-  "servers": {
-    "pdf-analyzer": {
-      "type": "stdio",
-      "command": "C:\\Users\\YOUR_USERNAME\\AppData\\Local\\pdf-analyzer\\bin\\pdf-analyzer.exe"
-    }
-  }
-}
-```
-
-Then enable in **Configure Tools** (click the tools icon in Copilot chat).
-
-</details>
-
-<details>
-<summary><strong>Gemini CLI</strong></summary>
-
-Add to `~/.gemini/settings.json` (global) or `.gemini/settings.json` (project).
-
-**macOS:**
-
-```json
-{
-  "mcpServers": {
-    "pdf-analyzer": {
-      "command": "/Users/YOUR_USERNAME/Library/Application Support/pdf-analyzer/bin/pdf-analyzer"
-    }
-  }
-}
-```
-
-**Linux:**
-
-```json
-{
-  "mcpServers": {
-    "pdf-analyzer": {
-      "command": "/home/YOUR_USERNAME/.pdf-analyzer/bin/pdf-analyzer"
-    }
-  }
-}
-```
-
-**Windows:**
-
-```json
-{
-  "mcpServers": {
-    "pdf-analyzer": {
-      "command": "C:\\Users\\YOUR_USERNAME\\AppData\\Local\\pdf-analyzer\\bin\\pdf-analyzer.exe"
-    }
-  }
-}
-```
-
-</details>
+Then enable it in **Configure Tools** (click the tools icon in Copilot chat).
 
 ## Usage
 
