@@ -1,5 +1,22 @@
 # CLAUDE.md - PDF Analyzer MCP Server
 
+## CRITICAL: Branch Protection
+
+**NEVER push directly to `main`. ALL changes must go through a PR.**
+
+1. Create a feature branch: `git checkout -b <branch-name>`
+2. Make changes and commit
+3. Push the branch: `git push -u origin <branch-name>`
+4. Create PR: `gh pr create`
+
+If you accidentally commit to main locally, fix it:
+```bash
+git branch <branch-name>          # Create branch from current commit
+git reset --hard origin/main      # Reset main to match remote
+git checkout <branch-name>        # Switch to your branch
+git push -u origin <branch-name>  # Push and create PR
+```
+
 ## CRITICAL: Gemini Model
 
 **ALWAYS use `gemini-3-pro-preview` as the model. NEVER change it to any other model (e.g., gemini-2.5-pro-preview, gemini-2.0-flash, etc.).**
