@@ -61,6 +61,10 @@ echo ""
 echo "Updating package.json..."
 sed -i '' "s/\"version\": \".*\"/\"version\": \"${NEW_VERSION}\"/" "package.json"
 
+# Update manifest.json (for .mcpb desktop extension)
+echo "Updating manifest.json..."
+sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${NEW_VERSION}\"/" "manifest.json"
+
 # Run checks
 echo ""
 echo "Running checks..."
@@ -71,7 +75,7 @@ npm test
 # Stage and commit
 echo ""
 echo "Committing..."
-git add "package.json"
+git add "package.json" "manifest.json"
 git commit -m "chore: release v${NEW_VERSION}"
 
 # Push
