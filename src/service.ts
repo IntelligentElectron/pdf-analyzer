@@ -1,32 +1,42 @@
 import { GoogleGenAI, ApiError, ThinkingLevel } from "@google/genai";
-import { readFileSync, existsSync } from "node:fs";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { join } from "node:path";
-import type { AnalyzePdfInput, AnalyzePdfResponse, QueryResponse } from "./types.js";
-import { GeminiResponseSchema } from "./types.js";
+import type {
+  AnalyzePdfInput,
+  AnalyzePdfResponse,
+  ChunkedQueryResponse,
+  QueryResponse,
+} from "./types.js";
+import { ChunkedGeminiResponseSchema, GeminiResponseSchema } from "./types.js";
+import { pdfBytesToChunk, splitPdfInHalf } from "./chunker.js";
+import type { PdfChunk } from "./chunker.js";
 
 /**
  * Load environment variables from .env file in current working directory.
  * Only sets variables that are not already defined in process.env.
  */
 function loadEnvFile(): void {
-  const envPath = join(process.cwd(), ".env");
-  if (!existsSync(envPath)) return;
+  const envPath = path.join(process.cwd(), ".env");
+  if (!fs.existsSync(envPath)) return;
 
-  const content = readFileSync(envPath, "utf-8");
+  const content = fs.readFileSync(envPath, "utf-8");
   for (const line of content.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
     const eqIndex = trimmed.indexOf("=");
     if (eqIndex === -1) continue;
     const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).trim().replace(/^["']|["']$/g, "");
+    const value = trimmed
+      .slice(eqIndex + 1)
+      .trim()
+      .replace(/^["']|["']$/g, "");
     if (!process.env[key]) {
       process.env[key] = value;
     }
   }
 }
+
+const GEMINI_MODEL = "gemini-3-pro-preview";
 
 const SYSTEM_INSTRUCTION = `You are a document analysis assistant. Analyze PDF documents and answer questions based on their content.
 For each question, provide a clear, detailed answer based on the content of the PDF.
@@ -161,7 +171,7 @@ async function waitForFileReady(
 /**
  * Upload a PDF to the Gemini File API, or return the URI if already a Gemini file.
  * Accepts local paths, web URLs, or Gemini File API URIs.
- * Returns the Gemini file_uri for use in subsequent calls.
+ * Returns the Gemini URI for use in subsequent calls.
  */
 async function uploadPdf(client: GoogleGenAI, source: string): Promise<string> {
   // If already a Gemini file URI, return as-is (no upload needed)
@@ -203,25 +213,45 @@ function buildUserPrompt(queries: string[]): string {
   return `Please analyze the attached PDF and answer these questions:\n\n${queriesText}`;
 }
 
+/** Maximum chunk size for File API upload: 50MB × 0.85 safety margin */
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024 * 0.85;
+
 /**
- * Analyzes a PDF document using Gemini and returns responses to the provided queries.
- * Uses the File API for uploads and structured output for reliable JSON responses.
- * Returns the Gemini file_uri so calling agents can reuse it for subsequent queries.
+ * Ensure every query has an answer, filling gaps if the model missed some.
  */
-export async function analyzePdf(
+function ensureAllQueriesAnswered(queries: string[], parsed: QueryResponse[]): QueryResponse[] {
+  const responseMap = new Map(parsed.map((r) => [r.query, r.answer]));
+  return queries.map((query, i) => {
+    const existingAnswer = parsed[i];
+    if (existingAnswer) {
+      return existingAnswer;
+    }
+    return {
+      query,
+      answer: responseMap.get(query) || "No answer found for this query.",
+    };
+  });
+}
+
+/**
+ * Direct single-file analysis path.
+ * Uploads the PDF via File API and sends it to Gemini in one call.
+ */
+async function analyzePdfDirect(
   client: GoogleGenAI,
-  input: AnalyzePdfInput
+  source: string,
+  queries: string[]
 ): Promise<AnalyzePdfResponse> {
-  const fileUri = await uploadPdf(client, input.pdf_source);
+  const fileUri = await uploadPdf(client, source);
 
   const response = await client.models.generateContent({
-    model: "gemini-3-pro-preview",
+    model: GEMINI_MODEL,
     contents: [
       {
         role: "user",
         parts: [
           { fileData: { fileUri, mimeType: "application/pdf" } },
-          { text: buildUserPrompt(input.queries) },
+          { text: buildUserPrompt(queries) },
         ],
       },
     ],
@@ -236,24 +266,275 @@ export async function analyzePdf(
   const responseText = response.text || "{}";
   const parsed = JSON.parse(responseText) as { responses: QueryResponse[] };
 
-  // Ensure all queries have answers (in case model missed some)
-  const responseMap = new Map(parsed.responses.map((r) => [r.query, r.answer]));
-  const responses: QueryResponse[] = input.queries.map((query, i) => {
-    const existingAnswer = parsed.responses[i];
-    if (existingAnswer) {
-      return existingAnswer;
-    }
-    return {
-      query,
-      answer: responseMap.get(query) || "No answer found for this query.",
-    };
+  return {
+    pdf_source: source,
+    cached_uris: [fileUri],
+    responses: ensureAllQueriesAnswered(queries, parsed.responses),
+  };
+}
+
+/**
+ * Upload raw PDF bytes to the Gemini File API.
+ * Returns the Gemini URI for use in Gemini calls.
+ */
+async function uploadChunkBytes(client: GoogleGenAI, chunkBytes: Uint8Array): Promise<string> {
+  const file = await client.files.upload({
+    file: new Blob([chunkBytes], { type: "application/pdf" }),
+    config: { mimeType: "application/pdf" },
   });
 
-  return {
-    pdf_source: input.pdf_source,
-    file_uri: fileUri,
-    responses,
-  };
+  if (!file.name || !file.uri) {
+    throw new Error("Chunk upload failed: missing name or URI");
+  }
+
+  await waitForFileReady(client, file.name);
+  return file.uri;
+}
+
+/**
+ * Build system instruction for a chunk at a given position.
+ * When `chunk` metadata is provided, page range info is included in the position line.
+ */
+function buildChunkedSystemInstruction(
+  chunkIndex: number,
+  totalChunks: number,
+  previousFindings: string | null,
+  chunk?: PdfChunk
+): string {
+  let position = `Processing chunk ${chunkIndex + 1} of ${totalChunks}`;
+  if (chunk) {
+    const pageRange = `pages ${chunk.startPage + 1}–${chunk.startPage + chunk.pageCount}`;
+    position += ` (${pageRange} of ${chunk.totalPages} total)`;
+  }
+  position += ".";
+
+  const base = `You are a document analysis assistant analyzing a large PDF that has been split into ${totalChunks} chunks.
+${position}
+For each question, provide a clear, detailed answer based on the content of this chunk.
+Always cite page numbers from the original document when possible.`;
+
+  const findingsInstruction = `
+In addition to answering the queries, produce a "findings_summary" field that tracks:
+- What has been found so far (with page citations)
+- What is partially answered
+- What remains unanswered`;
+
+  if (chunkIndex === 0) {
+    return `${base}
+This is the first chunk. Some answers may be incomplete — that's expected.${findingsInstruction}`;
+  }
+
+  const previousContext = `
+Here are the findings from the previous chunks:
+<previous_findings>
+${previousFindings}
+</previous_findings>
+
+Update your answers by combining the previous findings with any new information from this chunk.`;
+
+  if (chunkIndex === totalChunks - 1) {
+    return `${base}
+This is the final chunk.${previousContext}
+Provide final, comprehensive answers incorporating all findings across the entire document.${findingsInstruction}`;
+  }
+
+  return `${base}${previousContext}${findingsInstruction}`;
+}
+
+/**
+ * Check if an error is a Gemini token limit error (input too large).
+ */
+function isTokenLimitError(error: unknown): boolean {
+  if (!(error instanceof ApiError)) return false;
+  if (error.status !== 400) return false;
+  return error.message.includes("input token count exceeds");
+}
+
+/**
+ * Process a work queue of PdfChunks, splitting on token limit errors.
+ *
+ * Algorithm:
+ * 1. Shift a chunk from the queue
+ * 2. Upload it and call Gemini
+ * 3. On success: accumulate findings, collect cached_uri
+ * 4. On token limit error: split the chunk in half, unshift both back
+ * 5. Repeat until queue is empty
+ */
+async function processChunkQueue(
+  client: GoogleGenAI,
+  queue: PdfChunk[],
+  queries: string[],
+  pdfSource: string | string[]
+): Promise<AnalyzePdfResponse> {
+  let previousFindings: string | null = null;
+  const fileUris: string[] = [];
+  let processedCount = 0;
+
+  // We don't know total chunks upfront (splitting changes it),
+  // so we track completed chunks and estimate total as completed + remaining.
+  while (queue.length > 0) {
+    const chunk = queue.shift()!;
+    const totalChunks = processedCount + 1 + queue.length;
+
+    // Pre-split chunks that exceed File API upload limit
+    if (chunk.bytes.byteLength > MAX_UPLOAD_BYTES) {
+      const [firstHalf, secondHalf] = await splitPdfInHalf(chunk);
+      queue.unshift(firstHalf, secondHalf);
+      continue;
+    }
+
+    const fileUri = await uploadChunkBytes(client, chunk.bytes);
+
+    const systemInstruction = buildChunkedSystemInstruction(
+      processedCount,
+      totalChunks,
+      previousFindings,
+      chunk
+    );
+
+    try {
+      const response = await client.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { fileData: { fileUri, mimeType: "application/pdf" } },
+              { text: buildUserPrompt(queries) },
+            ],
+          },
+        ],
+        config: {
+          systemInstruction,
+          responseMimeType: "application/json",
+          responseSchema: ChunkedGeminiResponseSchema,
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+        },
+      });
+
+      const responseText = response.text || "{}";
+      const parsed = JSON.parse(responseText) as ChunkedQueryResponse;
+      previousFindings = parsed.findings_summary;
+      fileUris.push(fileUri);
+      processedCount++;
+
+      // On the last chunk, return the final responses
+      if (queue.length === 0) {
+        return {
+          pdf_source: pdfSource,
+          cached_uris: fileUris,
+          responses: ensureAllQueriesAnswered(queries, parsed.responses),
+        };
+      }
+    } catch (error) {
+      if (!isTokenLimitError(error)) throw error;
+
+      // Token limit hit — split this chunk and retry
+      const [firstHalf, secondHalf] = await splitPdfInHalf(chunk);
+      queue.unshift(firstHalf, secondHalf);
+    }
+  }
+
+  // Unreachable — loop returns on last successful chunk
+  throw new Error("No chunks to process");
+}
+
+/**
+ * Process an array of cached Gemini file URIs with rolling findings.
+ * Used for re-analysis of a previously chunked PDF.
+ */
+async function processCachedUris(
+  client: GoogleGenAI,
+  fileUris: string[],
+  queries: string[]
+): Promise<AnalyzePdfResponse> {
+  let previousFindings: string | null = null;
+
+  for (let i = 0; i < fileUris.length; i++) {
+    const fileUri = fileUris[i];
+    const systemInstruction = buildChunkedSystemInstruction(i, fileUris.length, previousFindings);
+
+    const response = await client.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { fileData: { fileUri, mimeType: "application/pdf" } },
+            { text: buildUserPrompt(queries) },
+          ],
+        },
+      ],
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: ChunkedGeminiResponseSchema,
+        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+      },
+    });
+
+    const responseText = response.text || "{}";
+    const parsed = JSON.parse(responseText) as ChunkedQueryResponse;
+    previousFindings = parsed.findings_summary;
+
+    if (i === fileUris.length - 1) {
+      return {
+        pdf_source: fileUris,
+        cached_uris: fileUris,
+        responses: ensureAllQueriesAnswered(queries, parsed.responses),
+      };
+    }
+  }
+
+  throw new Error("No URIs to process");
+}
+
+/**
+ * Read PDF bytes from a source (URL or local file).
+ */
+async function readPdfBytes(source: string): Promise<Buffer> {
+  if (isUrl(source)) {
+    return fetchPdfFromUrl(source);
+  }
+  validateLocalPath(source);
+  return fs.readFileSync(source.trim());
+}
+
+/**
+ * Analyzes a PDF document using Gemini.
+ *
+ * Routing:
+ * - string[] → cached chunk URIs, sequential processing with rolling findings
+ * - Gemini URI string → direct single-file analysis (no bytes to split)
+ * - path/URL → read bytes, try full PDF first, split on token limit error
+ */
+export async function analyzePdf(
+  client: GoogleGenAI,
+  input: AnalyzePdfInput
+): Promise<AnalyzePdfResponse> {
+  const { pdf_source, queries } = input;
+
+  // Array of cached Gemini file URIs — re-analysis path
+  if (Array.isArray(pdf_source)) {
+    return processCachedUris(client, pdf_source, queries);
+  }
+
+  // Single Gemini file URI — direct path, no splitting possible
+  if (isGeminiFileUri(pdf_source)) {
+    return analyzePdfDirect(client, pdf_source, queries);
+  }
+
+  // Path or URL — try the full PDF first via the direct path
+  try {
+    return await analyzePdfDirect(client, pdf_source, queries);
+  } catch (error) {
+    if (!isTokenLimitError(error)) throw error;
+  }
+
+  // Token limit exceeded — read bytes, split into chunks, and process via work queue
+  const pdfBytes = await readPdfBytes(pdf_source);
+  const initialChunk = await pdfBytesToChunk(new Uint8Array(pdfBytes));
+  return processChunkQueue(client, [initialChunk], queries, pdf_source);
 }
 
 /**

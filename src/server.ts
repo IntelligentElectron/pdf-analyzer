@@ -21,28 +21,34 @@ Analyzes PDF documents using Gemini's vision capabilities.
 
 ## Tool: analyze_pdf
 
-Pass an absolute file path or URL and a list of queries. The server reads the PDF,
+Pass an absolute file path, URL, or Gemini file URI(s) and a list of queries. The server reads the PDF,
 sends it to Gemini with your queries, and returns structured responses.
+
+Large PDFs that exceed Gemini's token limit are automatically split into chunks and processed
+sequentially with rolling context. No user intervention is needed.
 
 ## Caching Strategy
 
-The response includes a \`file_uri\` (Gemini File API URI) that you should reuse for subsequent
+The response includes a \`cached_uris\` array (Gemini File API URIs) that you should reuse for subsequent
 queries on the same document. This avoids re-uploading and is cached by Gemini for 48 hours.
 
 **Input types accepted:**
 - Local file path: \`/Users/name/docs/report.pdf\`
 - Web URL: \`https://example.com/doc.pdf\`
 - Gemini file URI: \`https://generativelanguage.googleapis.com/v1beta/files/abc123\` (from previous response)
+- Array of Gemini file URIs: for re-analyzing a previously chunked document
 
 **Workflow for multiple queries on same document:**
-1. First call: pass local path or URL → receive \`file_uri\` in response
-2. Subsequent calls: pass the \`file_uri\` as \`pdf_source\` → no re-upload, faster response
+1. First call: pass local path or URL → receive \`cached_uris\` in response
+2. Subsequent calls: pass the \`cached_uris\` value as \`pdf_source\` → no re-upload, faster response
+   - If \`cached_uris\` has one element, pass the single URI string
+   - If \`cached_uris\` has multiple elements (chunked PDF), pass the full array
 
 ## Usage Tips
 
 - Ask specific, focused queries for best results
 - For multi-page PDFs, reference page numbers in queries when relevant
-- Reuse the returned \`file_uri\` for follow-up questions on the same document
+- Reuse the returned \`cached_uris\` for follow-up questions on the same document
 
 ## Example
 
@@ -126,14 +132,17 @@ export const createServer = (): McpServer => {
     "analyze_pdf",
     {
       description:
-        "Analyze a PDF document using Gemini AI. Provide an absolute file path, URL, or Gemini file URI (from a previous response) and a list of questions to ask about the PDF content. Returns a file_uri that can be reused for subsequent queries on the same document (cached by Gemini for 48 hours).",
+        "Analyze a PDF document using Gemini AI. Provide an absolute file path, URL, Gemini file URI (from a previous response), or array of Gemini file URIs (from a previous chunked response) and a list of questions to ask about the PDF content. Returns a cached_uris array that can be reused for subsequent queries on the same document (cached by Gemini for 48 hours).",
       inputSchema: {
         pdf_source: z
-          .string()
+          .union([z.string(), z.array(z.string().min(1)).min(1)])
           .describe(
-            "PDF source: absolute local file path (e.g., /Users/name/docs/report.pdf), URL (e.g., https://example.com/doc.pdf), or Gemini file URI from a previous response (e.g., https://generativelanguage.googleapis.com/v1beta/files/abc123)"
+            "PDF source: absolute local file path (e.g., /Users/name/docs/report.pdf), URL (e.g., https://example.com/doc.pdf), Gemini file URI from a previous response (e.g., https://generativelanguage.googleapis.com/v1beta/files/abc123), or array of Gemini file URIs from a previous chunked response"
           ),
-        queries: z.array(z.string().min(1)).min(1).describe("Array of questions to ask about the PDF"),
+        queries: z
+          .array(z.string().min(1))
+          .min(1)
+          .describe("Array of questions to ask about the PDF"),
       },
     },
     async ({ pdf_source, queries }) => {
