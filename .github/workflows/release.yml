@@ -119,11 +119,6 @@ jobs:
           shasum -a 256 pdf-analyzer-* > checksums.txt
           cat checksums.txt
 
-      - name: Build .mcpb desktop extension
-        run: |
-          chmod +x scripts/build-mcpb.sh
-          RELEASE_DIR=$PWD/bin OUTPUT_DIR=$PWD/bin scripts/build-mcpb.sh ${GITHUB_REF#refs/tags/v}
-
       - name: Get version from tag
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
@@ -165,7 +160,6 @@ jobs:
             bin/pdf-analyzer-linux-x64
             bin/pdf-analyzer-windows-x64.exe
             bin/checksums.txt
-            bin/pdf-analyzer.mcpb
           draft: false
           prerelease: false
         env:
