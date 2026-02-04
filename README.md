@@ -64,13 +64,7 @@ npm update -g @intelligentelectron/pdf-analyzer
 
 1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
 2. Create a new API key (free tier available)
-3. Create a `.env` file in your project folder:
-
-```
-GEMINI_API_KEY=your-api-key-here
-```
-
-The server automatically loads the API key from `.env` in your current working directory.
+3. Copy your API key, we will use it to setup the MCP in the next section
 
 ## Connect the MCP with your favorite AI tool
 
