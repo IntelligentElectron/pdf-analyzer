@@ -64,30 +64,11 @@ npm update -g @intelligentelectron/pdf-analyzer
 
 1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
 2. Create a new API key (free tier available)
-3. Create a `.env` file in your project folder:
-
-```
-GEMINI_API_KEY=your-api-key-here
-```
-
-The server automatically loads the API key from `.env` in your current working directory.
+3. Copy your API key, we will use it to setup the MCP in the next section
 
 ## Connect the MCP with your favorite AI tool
 
 After installing the MCP with one of the methods above, you can connect it to your AI agent of choice.
-
-### Claude Desktop
-
-1. Download the [Claude Desktop app](https://claude.ai/download)
-2. Open Claude Desktop and go to **Settings** (gear icon)
-3. Under **Desktop app**, click **Extensions**
-4. Click **Advanced settings**
-5. In the **Extension Developer** section, click **Install Extension...**
-6. Navigate to your install directory and select `pdf-analyzer.mcpb`:
-   - **macOS**: `~/Library/Application Support/pdf-analyzer/pdf-analyzer.mcpb`
-   - **Windows**: `%LOCALAPPDATA%\pdf-analyzer\pdf-analyzer.mcpb`
-
-The extension will be available immediately in your conversations.
 
 ### Claude Code
 
@@ -124,13 +105,18 @@ Add to `.vscode/mcp.json` in your project:
   "servers": {
     "pdf-analyzer": {
       "type": "stdio",
-      "command": "pdf-analyzer"
+      "command": "pdf-analyzer",
+      "env": {
+        "GEMINI_API_KEY": "your-key"
+      }
     }
   }
 }
 ```
 
 Then enable it in **Configure Tools** (click the tools icon in Copilot chat).
+
+> **Warning:** Do not commit `.vscode/mcp.json` to version control — it contains your API key. Add it to your `.gitignore`.
 
 ## Usage
 
