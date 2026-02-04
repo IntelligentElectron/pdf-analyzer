@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.0.5] - 2026-02-04
+
+### Changed
+- Revert to absolute-only paths in `analyze_pdf` tool for reliability
+- Add Claude Code GitHub Actions workflows for automated PR review
+
 ## [0.0.4] - 2026-02-03
 
 ### Added
