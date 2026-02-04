@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.0.6] - 2026-02-04
+
+### Added
+- Claude Desktop extension (.mcpb) support for easy one-click installation
+- `.mcpb` build script and release workflow integration
+- `.mcpb` download in native installer
+
+### Changed
+- Claude Code and Gemini CLI install commands now use `--scope user` by default
+
 ## [0.0.5] - 2026-02-04
 
 ### Changed

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/mcpb/main/mcpb-manifest.schema.json",
+  "manifest_version": "0.3",
+  "name": "pdf-analyzer",
+  "display_name": "PDF Analyzer",
+  "version": "0.0.5",
+  "description": "Analyze PDF documents and answer questions about their content using AI",
+  "long_description": "The PDF Analyzer MCP Server gives AI agents the ability to read and analyze PDF documents, enabling document Q&A through natural conversations.\n\nPowered by Google's Gemini API. Supports local files and URLs.",
+  "author": {
+    "name": "IntelligentElectron",
+    "url": "https://github.com/IntelligentElectron"
+  },
+  "icon": "icon.png",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IntelligentElectron/pdf-analyzer"
+  },
+  "homepage": "https://github.com/IntelligentElectron/pdf-analyzer",
+  "keywords": [
+    "PDF",
+    "document",
+    "analysis",
+    "Gemini",
+    "MCP",
+    "AI"
+  ],
+  "server": {
+    "type": "binary",
+    "entry_point": "server/pdf-analyzer",
+    "mcp_config": {
+      "command": "${__dirname}/server/pdf-analyzer",
+      "env": {
+        "GEMINI_API_KEY": ""
+      }
+    }
+  },
+  "compatibility": {
+    "claude_desktop": ">=1.0.0",
+    "platforms": ["darwin", "win32"]
+  },
+  "tools_generated": true,
+  "tools": [
+    {
+      "name": "analyze_pdf",
+      "description": "Analyze a PDF document using AI and answer questions about its content"
+    }
+  ]
+}

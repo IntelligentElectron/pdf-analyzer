@@ -15,6 +15,7 @@ set -euo pipefail
 # Configuration
 REPO="IntelligentElectron/pdf-analyzer"
 BINARY_NAME="pdf-analyzer"
+MCPB_NAME="pdf-analyzer.mcpb"
 # Set default install directory based on OS
 if [ "$(uname -s)" = "Darwin" ]; then
     DEFAULT_INSTALL_DIR="$HOME/Library/Application Support/pdf-analyzer"
@@ -209,8 +210,9 @@ main() {
     fi
     info "Version: $version"
 
-    # Construct download URL
+    # Construct download URLs
     download_url="https://github.com/${REPO}/releases/download/${version}/${platform}"
+    mcpb_url="https://github.com/${REPO}/releases/download/${version}/${MCPB_NAME}"
     checksum_url="https://github.com/${REPO}/releases/download/${version}/checksums.txt"
 
     # Create installation directory
@@ -246,12 +248,31 @@ main() {
     chmod +x "$binary_path"
     success "Installed to $binary_path"
 
+    # Download .mcpb package for Claude Desktop
+    local mcpb_path="$install_dir/$MCPB_NAME"
+    local mcpb_temp
+    mcpb_temp=$(mktemp)
+    trap "rm -f '$mcpb_temp' '$checksum_file'" EXIT
+
+    if download "$mcpb_url" "$mcpb_temp" 2>/dev/null; then
+        mv "$mcpb_temp" "$mcpb_path"
+        success "Installed Claude Desktop extension to $mcpb_path"
+    else
+        warn "Could not download .mcpb package (Claude Desktop extension)"
+    fi
+
     # Add to PATH
     add_to_path "$install_dir"
 
     # Print success message
     echo ""
     success "Installation complete!"
+    echo ""
+    echo "Installed files:"
+    echo "  Binary: $binary_path"
+    if [ -f "$mcpb_path" ]; then
+        echo "  Claude Desktop extension: $mcpb_path"
+    fi
     echo ""
     echo "To start using pdf-analyzer, either:"
     echo "  1. Open a new terminal, or"
@@ -263,8 +284,10 @@ main() {
     echo "To update, run:"
     echo "  pdf-analyzer --update"
     echo ""
-    echo "Configure your MCP client with:"
-    echo '  {"mcpServers": {"pdf-analyzer": {"command": "pdf-analyzer", "env": {"GEMINI_API_KEY": "your-key"}}}}'
+    echo "For Claude Desktop:"
+    echo "  1. Open Claude Desktop -> Settings -> Extensions -> Advanced settings"
+    echo "  2. Click 'Install Extension...' and select:"
+    echo "     $mcpb_path"
     echo ""
 }
 
