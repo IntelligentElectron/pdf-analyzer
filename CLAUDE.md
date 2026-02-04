@@ -79,16 +79,19 @@ Branch protection requires releases to go through a PR:
 1. `git checkout -b release/vX.Y.Z`
 2. Update `CHANGELOG.md` with new version section
 3. `git commit -am "Add vX.Y.Z changelog"`
-4. `npm version patch -m "v%s"` (bumps `package.json`, creates commit)
-5. Push branch and open PR: `git push -u origin release/vX.Y.Z && gh pr create`
-6. Merge the PR
-7. Tag the merge commit and push:
+4. `npm version patch --no-git-tag-version` (bumps `package.json` only, no tag)
+5. `git commit -am "vX.Y.Z"`
+6. Push branch and open PR: `git push -u origin release/vX.Y.Z && gh pr create`
+7. Merge the PR
+8. Tag the merge commit and push:
 
    ```bash
    git checkout main && git pull
    git tag vX.Y.Z
    git push origin vX.Y.Z
    ```
+
+   **Note:** Do NOT use `npm version` without `--no-git-tag-version` — it creates a local git tag that points to the release branch commit, not the merge commit on main. The tag must be created manually on the merge commit.
 
 The tag push triggers the release workflow. GitHub Actions handles: binary builds, macOS signing/notarization, GitHub Release creation.
 
