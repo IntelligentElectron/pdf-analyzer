@@ -99,7 +99,7 @@ claude mcp add --scope user --env GEMINI_API_KEY=your-key pdf-analyzer -- pdf-an
 
 ### OpenAI Codex
 
-Install [OpenAI Codex](https://github.com/openai/codex), then run:
+Install [OpenAI Codex](https://developers.openai.com/codex/cli/), then run:
 
 ```bash
 codex mcp add pdf-analyzer --env GEMINI_API_KEY=your-key -- pdf-analyzer
@@ -107,7 +107,7 @@ codex mcp add pdf-analyzer --env GEMINI_API_KEY=your-key -- pdf-analyzer
 
 ### Gemini CLI
 
-Install [Gemini CLI](https://github.com/google-gemini/gemini-cli), then run:
+Install [Gemini CLI](https://geminicli.com/docs/get-started/installation/), then run:
 
 ```bash
 gemini mcp add --scope user -e GEMINI_API_KEY=your-key pdf-analyzer pdf-analyzer
@@ -124,13 +124,18 @@ Add to `.vscode/mcp.json` in your project:
   "servers": {
     "pdf-analyzer": {
       "type": "stdio",
-      "command": "pdf-analyzer"
+      "command": "pdf-analyzer",
+      "env": {
+        "GEMINI_API_KEY": "your-key"
+      }
     }
   }
 }
 ```
 
 Then enable it in **Configure Tools** (click the tools icon in Copilot chat).
+
+> **Warning:** Do not commit `.vscode/mcp.json` to version control — it contains your API key. Add it to your `.gitignore`.
 
 ## Usage
 
