@@ -76,19 +76,6 @@ The server automatically loads the API key from `.env` in your current working d
 
 After installing the MCP with one of the methods above, you can connect it to your AI agent of choice.
 
-### Claude Desktop
-
-1. Download the [Claude Desktop app](https://claude.ai/download)
-2. Open Claude Desktop and go to **Settings** (gear icon)
-3. Under **Desktop app**, click **Extensions**
-4. Click **Advanced settings**
-5. In the **Extension Developer** section, click **Install Extension...**
-6. Navigate to your install directory and select `pdf-analyzer.mcpb`:
-   - **macOS**: `~/Library/Application Support/pdf-analyzer/pdf-analyzer.mcpb`
-   - **Windows**: `%LOCALAPPDATA%\pdf-analyzer\pdf-analyzer.mcpb`
-
-The extension will be available immediately in your conversations.
-
 ### Claude Code
 
 Install [Claude Code](https://docs.anthropic.com/en/docs/claude-code), then run:
