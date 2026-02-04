@@ -3,7 +3,7 @@
   "manifest_version": "0.3",
   "name": "pdf-analyzer",
   "display_name": "PDF Analyzer",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Analyze PDF documents and answer questions about their content using AI",
   "long_description": "The PDF Analyzer MCP Server gives AI agents the ability to read and analyze PDF documents, enabling document Q&A through natural conversations.\n\nPowered by Google's Gemini API. Supports local files and URLs.",
   "author": {
