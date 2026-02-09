@@ -1,6 +1,6 @@
 {
   "name": "@intelligentelectron/pdf-analyzer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for analyzing PDF documents using Gemini API",
   "type": "module",
   "main": "dist/index.js",
