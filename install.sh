@@ -42,7 +42,10 @@ detect_platform() {
     local os arch
 
     case "$(uname -s)" in
-        Darwin) os="darwin" ;;
+        Darwin)
+            echo "${BINARY_NAME}-darwin-universal"
+            return
+            ;;
         Linux) os="linux" ;;
         MINGW*|MSYS*|CYGWIN*) os="windows" ;;
         *) die "Unsupported operating system: $(uname -s)" ;;

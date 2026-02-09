@@ -44,7 +44,7 @@ const getPlatformBinaryName = (): string => {
   const arch = process.arch;
 
   if (platform === "darwin") {
-    return arch === "arm64" ? `${BINARY_NAME}-darwin-arm64` : `${BINARY_NAME}-darwin-x64`;
+    return `${BINARY_NAME}-darwin-universal`;
   } else if (platform === "linux") {
     return arch === "arm64" ? `${BINARY_NAME}-linux-arm64` : `${BINARY_NAME}-linux-x64`;
   } else if (platform === "win32") {

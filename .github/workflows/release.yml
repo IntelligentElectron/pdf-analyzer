@@ -49,6 +49,14 @@ jobs:
           bun build --compile --minify --target=bun-linux-x64 --define BUILD_VERSION="\"$VERSION\"" src/index.ts --outfile bin/pdf-analyzer-linux-x64
           bun build --compile --minify --target=bun-windows-x64 --define BUILD_VERSION="\"$VERSION\"" src/index.ts --outfile bin/pdf-analyzer-windows-x64.exe
 
+          # Create macOS universal binary
+          lipo -create bin/pdf-analyzer-darwin-arm64 bin/pdf-analyzer-darwin-x64 \
+            -output bin/pdf-analyzer-darwin-universal
+
+          # Replace arch-specific binaries with the universal binary for backward compatibility
+          cp bin/pdf-analyzer-darwin-universal bin/pdf-analyzer-darwin-arm64
+          cp bin/pdf-analyzer-darwin-universal bin/pdf-analyzer-darwin-x64
+
       - name: Import Apple certificate
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
@@ -70,21 +78,19 @@ jobs:
           # Allow codesign to access the key
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-      - name: Sign macOS binaries
+      - name: Sign macOS universal binary
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           cd bin
 
-          # Sign both macOS binaries with JIT entitlements (required for Bun runtime)
-          codesign --force --options runtime --entitlements ../entitlements.plist --sign "Developer ID Application: Valentino Zegna Baruffa ($APPLE_TEAM_ID)" pdf-analyzer-darwin-arm64
-          codesign --force --options runtime --entitlements ../entitlements.plist --sign "Developer ID Application: Valentino Zegna Baruffa ($APPLE_TEAM_ID)" pdf-analyzer-darwin-x64
+          # Sign the universal binary with JIT entitlements (required for Bun runtime)
+          codesign --force --options runtime --entitlements ../entitlements.plist --sign "Developer ID Application: Valentino Zegna Baruffa ($APPLE_TEAM_ID)" pdf-analyzer-darwin-universal
 
-          # Verify signatures
-          codesign --verify --verbose pdf-analyzer-darwin-arm64
-          codesign --verify --verbose pdf-analyzer-darwin-x64
+          # Verify signature
+          codesign --verify --verbose pdf-analyzer-darwin-universal
 
-      - name: Notarize macOS binaries
+      - name: Notarize macOS universal binary
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
@@ -92,26 +98,22 @@ jobs:
         run: |
           cd bin
 
-          # Create ZIP files for notarization
-          zip pdf-analyzer-darwin-arm64.zip pdf-analyzer-darwin-arm64
-          zip pdf-analyzer-darwin-x64.zip pdf-analyzer-darwin-x64
+          # Create ZIP for notarization
+          zip pdf-analyzer-darwin-universal.zip pdf-analyzer-darwin-universal
 
-          # Notarize ARM64
-          xcrun notarytool submit pdf-analyzer-darwin-arm64.zip \
+          # Notarize universal binary
+          xcrun notarytool submit pdf-analyzer-darwin-universal.zip \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
             --wait
 
-          # Notarize x64
-          xcrun notarytool submit pdf-analyzer-darwin-x64.zip \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_APP_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --wait
-
-          # Clean up zips
+          # Clean up zip
           rm *.zip
+
+          # Copy signed+notarized universal binary to arch-specific names for backward compatibility
+          cp pdf-analyzer-darwin-universal pdf-analyzer-darwin-arm64
+          cp pdf-analyzer-darwin-universal pdf-analyzer-darwin-x64
 
       - name: Generate checksums
         run: |
@@ -154,6 +156,7 @@ jobs:
 
             See `checksums.txt` for SHA256 checksums.
           files: |
+            bin/pdf-analyzer-darwin-universal
             bin/pdf-analyzer-darwin-arm64
             bin/pdf-analyzer-darwin-x64
             bin/pdf-analyzer-linux-arm64
