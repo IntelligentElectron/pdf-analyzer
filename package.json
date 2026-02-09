@@ -1,6 +1,6 @@
 {
   "name": "@intelligentelectron/pdf-analyzer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for analyzing PDF documents using Gemini API",
   "type": "module",
   "main": "dist/index.js",
@@ -20,7 +20,8 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "compile:all": "npm run compile:darwin-arm64 && npm run compile:darwin-x64 && npm run compile:linux-arm64 && npm run compile:linux-x64 && npm run compile:windows-x64",
+    "compile:all": "npm run compile:darwin-arm64 && npm run compile:darwin-x64 && npm run compile:linux-arm64 && npm run compile:linux-x64 && npm run compile:windows-x64 && lipo -create bin/pdf-analyzer-darwin-arm64 bin/pdf-analyzer-darwin-x64 -output bin/pdf-analyzer-darwin-universal",
+    "compile:darwin-universal": "npm run compile:darwin-arm64 && npm run compile:darwin-x64 && lipo -create bin/pdf-analyzer-darwin-arm64 bin/pdf-analyzer-darwin-x64 -output bin/pdf-analyzer-darwin-universal",
     "compile:darwin-arm64": "bun build --compile --minify --target=bun-darwin-arm64 --define BUILD_VERSION=\"\\\"$(node -p 'require(\\\"./package.json\\\").version')\\\"\" src/index.ts --outfile=bin/pdf-analyzer-darwin-arm64",
     "compile:darwin-x64": "bun build --compile --minify --target=bun-darwin-x64 --define BUILD_VERSION=\"\\\"$(node -p 'require(\\\"./package.json\\\").version')\\\"\" src/index.ts --outfile=bin/pdf-analyzer-darwin-x64",
     "compile:linux-arm64": "bun build --compile --minify --target=bun-linux-arm64 --define BUILD_VERSION=\"\\\"$(node -p 'require(\\\"./package.json\\\").version')\\\"\" src/index.ts --outfile=bin/pdf-analyzer-linux-arm64",

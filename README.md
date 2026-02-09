@@ -134,8 +134,7 @@ The server accepts:
 
 | Platform | Binary |
 |----------|--------|
-| macOS (Apple Silicon) | `pdf-analyzer-darwin-arm64` |
-| macOS (Intel) | `pdf-analyzer-darwin-x64` |
+| macOS (Universal) | `pdf-analyzer-darwin-universal` |
 | Linux (x64) | `pdf-analyzer-linux-x64` |
 | Linux (ARM64) | `pdf-analyzer-linux-arm64` |
 | Windows (x64) | `pdf-analyzer-windows-x64.exe` |

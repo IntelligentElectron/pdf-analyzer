@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.1] - 2026-02-09
+
+### Changed
+- macOS: ship a single universal binary (arm64 + x64) instead of two separate binaries
+- Installer and auto-updater now download the universal binary on macOS
+- Arch-specific download names preserved for backward compatibility with v0.1.0
+
+### Removed
+- Claude Code CI workflow files (claude.yml, claude-review.yml)
+
 ## [0.1.0] - 2026-02-04
 
 ### Added
