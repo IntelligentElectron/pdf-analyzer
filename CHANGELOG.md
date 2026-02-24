@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 - Skip auto-update for npm installs (detect `node_modules` in script path)
+- Remove deprecated `baseUrl` from tsconfig, add explicit `rootDir`
 
 ## [0.1.2] - 2026-02-24
 
