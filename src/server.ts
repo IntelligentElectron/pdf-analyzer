@@ -73,7 +73,6 @@ Common errors and solutions:
 ## Environment Variables
 
 - GEMINI_API_KEY: Required. Get your key from https://aistudio.google.com/apikey
-- PDF_MCP_NO_UPDATE: Set to "1" to disable auto-updates
 `.trim();
 
 // =============================================================================

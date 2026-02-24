@@ -33,12 +33,10 @@ OPTIONS:
   --version, -v    Print version and exit
   --update         Check for updates and apply if available
   --uninstall      Remove ${BINARY_NAME} from the system
-  --no-update      Skip auto-update check on startup
   --help, -h       Show this help message
 
 ENVIRONMENT VARIABLES:
   GEMINI_API_KEY        Required. Your Gemini API key from Google AI Studio.
-  PDF_MCP_NO_UPDATE=1   Disable auto-updates
 
 INSTALLATION:
   curl -fsSL https://raw.githubusercontent.com/${GITHUB_REPO}/main/install.sh | bash

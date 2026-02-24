@@ -148,7 +148,6 @@ xcrun stapler staple pdf-analyzer-darwin-arm64
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `GEMINI_API_KEY` | Yes | API key from Google AI Studio. Auto-loaded from `.env` in CWD |
-| `PDF_MCP_NO_UPDATE` | No | Set to "1" to disable auto-update |
 
 ## CLI Commands
 
@@ -158,7 +157,6 @@ pdf-analyzer --version    # Print version
 pdf-analyzer --help       # Show help
 pdf-analyzer --update     # Manual update check
 pdf-analyzer --uninstall  # Remove binary and PATH entries
-pdf-analyzer --no-update  # Run without update check
 ```
 
 ## MCP Tool: analyze_pdf

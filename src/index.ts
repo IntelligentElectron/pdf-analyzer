@@ -10,12 +10,10 @@
  *   --version, -v    Print version and exit
  *   --update         Check for updates and apply if available
  *   --uninstall      Remove pdf-analyzer from the system
- *   --no-update      Skip auto-update check on startup
  *   --help, -h       Show help
  *
  * Environment variables:
  *   GEMINI_API_KEY        Required. Your Gemini API key.
- *   PDF_MCP_NO_UPDATE=1   Disable auto-updates
  */
 
 import { autoUpdate, reexec } from "./cli/updater.js";
@@ -57,14 +55,20 @@ const main = async (): Promise<void> => {
     return;
   }
 
-  // Auto-update check on startup (unless --no-update or env var)
-  const skipUpdate = args.includes("--no-update") || process.env.PDF_MCP_NO_UPDATE === "1";
+  // If running in a TTY (interactive terminal), show help instead of starting server
+  if (process.stdin.isTTY) {
+    console.log("This is an MCP server that communicates via stdio.");
+    console.log("It should be run by an MCP client, not directly.\n");
+    console.log("For setup instructions, see:");
+    console.log(`  https://github.com/IntelligentElectron/pdf-analyzer\n`);
+    console.log("Run with --help for available options.");
+    return;
+  }
 
-  if (!skipUpdate) {
-    const updated = await autoUpdate();
-    if (updated) {
-      reexec();
-    }
+  // Auto-update check on startup
+  const updated = await autoUpdate();
+  if (updated) {
+    reexec();
   }
 
   await runServer();
