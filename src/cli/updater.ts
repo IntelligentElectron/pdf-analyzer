@@ -2,6 +2,7 @@
  * Auto-updater for pdf-analyzer server.
  *
  * Checks GitHub Releases for newer versions and self-updates on startup.
+ * Skipped for npm installs.
  */
 
 import {
@@ -17,6 +18,15 @@ import { join, dirname, basename } from "node:path";
 import { spawn } from "node:child_process";
 import { VERSION, GITHUB_REPO, BINARY_NAME } from "../version.js";
 import type { GitHubRelease } from "../types.js";
+
+/**
+ * Detect if running as an npm global install or via npx.
+ * npm installs run from node_modules, not as compiled binaries.
+ */
+export const isNpmInstall = (): boolean => {
+  const scriptPath = process.argv[1];
+  return scriptPath?.includes("node_modules") ?? false;
+};
 
 /** Result of an update check. */
 export interface UpdateCheckResult {
@@ -334,6 +344,11 @@ export const reexec = (): never => {
  * This is the main entry point for auto-updates on startup.
  */
 export const autoUpdate = async (): Promise<boolean> => {
+  // Skip auto-update for npm installs - use npm update instead
+  if (isNpmInstall()) {
+    return false;
+  }
+
   const check = await checkForUpdate();
 
   if (check.error) {
