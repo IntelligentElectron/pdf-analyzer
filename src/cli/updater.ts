@@ -2,7 +2,6 @@
  * Auto-updater for pdf-analyzer server.
  *
  * Checks GitHub Releases for newer versions and self-updates on startup.
- * Can be disabled via PDF_MCP_NO_UPDATE=1 environment variable.
  */
 
 import {
@@ -335,11 +334,6 @@ export const reexec = (): never => {
  * This is the main entry point for auto-updates on startup.
  */
 export const autoUpdate = async (): Promise<boolean> => {
-  // Check if updates are disabled
-  if (process.env.PDF_MCP_NO_UPDATE === "1") {
-    return false;
-  }
-
   const check = await checkForUpdate();
 
   if (check.error) {
