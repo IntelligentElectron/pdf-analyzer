@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.5] - 2026-03-01
+
+### Added
+
+- Library exports for programmatic use from TypeScript codebases (`@intelligentelectron/pdf-analyzer/service`)
+- Package `exports` map with `./service` and `./types` subpath entry points
+- Type re-exports from `service.ts`: `AnalyzePdfInput`, `AnalyzePdfResponse`, `QueryResponse`, `AnalyzePdfInputSchema`
+
+### Changed
+
+- Switch TypeScript config to `module: "NodeNext"` / `moduleResolution: "NodeNext"` for proper subpath export resolution
+- Add `declarationMap` for "go to definition" support in consuming projects
+- Exclude test files from compiled output
+
 ## [0.1.4] - 2026-02-24
 
 ### Fixed

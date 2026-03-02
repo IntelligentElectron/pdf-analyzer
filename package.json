@@ -1,9 +1,24 @@
 {
   "name": "@intelligentelectron/pdf-analyzer",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "MCP server for analyzing PDF documents using Gemini API",
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./service": {
+      "types": "./dist/service.d.ts",
+      "default": "./dist/service.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
+    }
+  },
   "bin": {
     "pdf-analyzer": "dist/index.js"
   },

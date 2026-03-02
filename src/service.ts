@@ -553,3 +553,7 @@ export function getApiErrorMessage(error: ApiError): { message: string; details?
     details: error.message,
   };
 }
+
+// Re-export types that appear in public API signatures
+export type { AnalyzePdfInput, AnalyzePdfResponse, QueryResponse } from "./types.js";
+export { AnalyzePdfInputSchema } from "./types.js";
