@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.6] - 2026-03-02
+
+### Changed
+- Upgrade Gemini model from `gemini-3-pro-preview` to `gemini-3.1-pro-preview`
+
 ## [0.1.5] - 2026-03-01
 
 ### Added
