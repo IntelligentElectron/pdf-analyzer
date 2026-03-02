@@ -1,4 +1,4 @@
-# CLAUDE.md - PDF Analyzer MCP Server
+# PDF Analyzer MCP Server
 
 ## CRITICAL: Branch Protection
 
@@ -10,6 +10,7 @@
 4. Create PR: `gh pr create`
 
 If you accidentally commit to main locally, fix it:
+
 ```bash
 git branch <branch-name>          # Create branch from current commit
 git reset --hard origin/main      # Reset main to match remote
@@ -19,7 +20,7 @@ git push -u origin <branch-name>  # Push and create PR
 
 ## CRITICAL: Gemini Model
 
-**ALWAYS use `gemini-3-pro-preview` as the model. NEVER change it to any other model (e.g., gemini-2.5-pro-preview, gemini-2.0-flash, etc.).**
+**ALWAYS use `gemini-3.1-pro-preview` as the model. NEVER change it to any other model (e.g., gemini-2.5-pro-preview, gemini-2.0-flash, etc.).**
 
 - <https://ai.google.dev/gemini-api/docs/document-processing>
 - <https://ai.google.dev/gemini-api/docs/document-processing#large-pdfs> (File API for large PDFs)
@@ -28,22 +29,6 @@ git push -u origin <branch-name>  # Push and create PR
 ## Overview
 
 Standalone MCP server for analyzing PDF documents using Gemini API. Distributed as self-updating binaries for all platforms. Users provide their own Gemini API key.
-
-## Architecture
-
-```
-src/
-├── index.ts          # CLI entry point, flag parsing
-├── server.ts         # MCP server setup, tool registration
-├── service.ts        # Gemini API integration, chunked processing
-├── chunker.ts        # PDF splitting (pdf-lib)
-├── types.ts          # TypeScript types
-├── version.ts        # VERSION, GITHUB_REPO, BINARY_NAME
-└── cli/
-    ├── commands.ts   # --version, --help, --update, --uninstall
-    ├── updater.ts    # Auto-update from GitHub releases
-    └── shell.ts      # PATH integration for shells
-```
 
 ## Build & Package
 
@@ -158,51 +143,6 @@ pdf-analyzer --help       # Show help
 pdf-analyzer --update     # Manual update check
 pdf-analyzer --uninstall  # Remove binary and PATH entries
 ```
-
-## MCP Tool: analyze_pdf
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `pdf_source` | `string \| string[]` | Yes | File path, URL, Gemini URI, or array of cached URIs |
-| `queries` | `string[]` | Yes | Questions to ask about the PDF |
-
-## MCP Client Configuration
-
-```json
-{
-  "mcpServers": {
-    "pdf-analyzer": {
-      "command": "pdf-analyzer"
-    }
-  }
-}
-```
-
-API key is loaded from `.env` file in the current working directory.
-
-## Installation
-
-### macOS / Linux
-
-```bash
-FIX
-```
-
-### Windows
-
-```powershell
-FIX
-```
-
-## Error Handling
-
-| Scenario | Response |
-|----------|----------|
-| Missing GEMINI_API_KEY | Error with setup instructions |
-| PDF not found | Error with validated path |
-| PDF exceeds token limit | Auto-split into chunks and retry |
-| Single page exceeds limit | Error (cannot split further) |
-| Gemini API error | Pass through with context |
 
 ## Common Issues
 

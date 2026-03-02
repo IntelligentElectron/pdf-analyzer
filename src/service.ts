@@ -36,7 +36,7 @@ function loadEnvFile(): void {
   }
 }
 
-const GEMINI_MODEL = "gemini-3-pro-preview";
+const GEMINI_MODEL = "gemini-3.1-pro-preview";
 
 const SYSTEM_INSTRUCTION = `You are a document analysis assistant. Analyze PDF documents and answer questions based on their content.
 For each question, provide a clear, detailed answer based on the content of the PDF.
