@@ -1,10 +1,20 @@
 import { describe, it, expect } from "vitest";
+import { execSync } from "node:child_process";
 import {
   escapeShellArg,
   getStoredApiKey,
   setStoredApiKey,
   deleteStoredApiKey,
 } from "./keychain.js";
+
+function hasSecretTool(): boolean {
+  try {
+    execSync("which secret-tool", { stdio: "pipe" });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 describe("escapeShellArg", () => {
   it("wraps simple strings in single quotes", () => {
@@ -101,19 +111,22 @@ describe.skipIf(process.platform !== "darwin")("macOS keychain integration", () 
   });
 });
 
-describe.skipIf(process.platform !== "linux")("Linux secret-tool integration", () => {
-  const TEST_KEY = "test-key-vitest-" + Date.now();
+describe.skipIf(process.platform !== "linux" || !hasSecretTool())(
+  "Linux secret-tool integration",
+  () => {
+    const TEST_KEY = "test-key-vitest-" + Date.now();
 
-  it("round-trips a key through secret-tool", () => {
-    setStoredApiKey(TEST_KEY, TEST_SERVICE);
-    try {
-      expect(getStoredApiKey(TEST_SERVICE)).toBe(TEST_KEY);
-    } finally {
-      deleteStoredApiKey(TEST_SERVICE);
-    }
-    expect(getStoredApiKey(TEST_SERVICE)).toBeNull();
-  });
-});
+    it("round-trips a key through secret-tool", () => {
+      setStoredApiKey(TEST_KEY, TEST_SERVICE);
+      try {
+        expect(getStoredApiKey(TEST_SERVICE)).toBe(TEST_KEY);
+      } finally {
+        deleteStoredApiKey(TEST_SERVICE);
+      }
+      expect(getStoredApiKey(TEST_SERVICE)).toBeNull();
+    });
+  }
+);
 
 describe.skipIf(process.platform !== "win32")("Windows credential manager integration", () => {
   const TEST_KEY = "test-key-vitest-" + Date.now();
