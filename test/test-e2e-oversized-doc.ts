@@ -1,6 +1,6 @@
 /**
  * End-to-end test for chunked PDF processing with the oversized fixture.
- * Requires GEMINI_API_KEY in .env or environment.
+ * Requires GEMINI_API_KEY stored via `pdf-analyzer --set-key`.
  *
  * 1. Analyzes the oversized PDF from a file path (triggers chunking).
  * 2. Re-analyzes using the cached cached_uris from step 1 (no re-upload).

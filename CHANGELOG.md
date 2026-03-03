@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.2.0] - 2026-03-03
+
+### Added
+- OS-native credential storage for Gemini API key (macOS Keychain, Linux secret-tool, Windows Credential Manager)
+- `--set-key` CLI command to store/update the API key interactively
+- Install scripts prompt to store the API key during installation
+- Install scripts detect existing stored key and ask before overwriting
+
+### Changed
+- API key is now read from the OS credential store instead of environment variables
+- Remove `--env GEMINI_API_KEY` from all MCP client config examples in README
+- Remove `ThinkingLevel.HIGH` config; Gemini now uses default dynamic thinking (auto-adjusts per query)
+
+### Removed
+- `.env` file auto-loading for API key
+- Environment variable `GEMINI_API_KEY` support (replaced by OS credential store)
+
 ## [0.1.6] - 2026-03-02
 
 ### Changed

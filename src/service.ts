@@ -1,4 +1,4 @@
-import { GoogleGenAI, ApiError, ThinkingLevel } from "@google/genai";
+import { GoogleGenAI, ApiError } from "@google/genai";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type {
@@ -10,31 +10,7 @@ import type {
 import { ChunkedGeminiResponseSchema, GeminiResponseSchema } from "./types.js";
 import { pdfBytesToChunk, splitPdfInHalf } from "./chunker.js";
 import type { PdfChunk } from "./chunker.js";
-
-/**
- * Load environment variables from .env file in current working directory.
- * Only sets variables that are not already defined in process.env.
- */
-function loadEnvFile(): void {
-  const envPath = path.join(process.cwd(), ".env");
-  if (!fs.existsSync(envPath)) return;
-
-  const content = fs.readFileSync(envPath, "utf-8");
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eqIndex = trimmed.indexOf("=");
-    if (eqIndex === -1) continue;
-    const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed
-      .slice(eqIndex + 1)
-      .trim()
-      .replace(/^["']|["']$/g, "");
-    if (!process.env[key]) {
-      process.env[key] = value;
-    }
-  }
-}
+import { getStoredApiKey } from "./keychain.js";
 
 const GEMINI_MODEL = "gemini-3.1-pro-preview";
 
@@ -48,13 +24,15 @@ const GEMINI_FILE_URI_PREFIX = "https://generativelanguage.googleapis.com/";
 
 /**
  * Creates and returns a configured GoogleGenAI client.
- * Loads GEMINI_API_KEY from .env file if not already set in environment.
+ * Reads GEMINI_API_KEY from the OS credential store.
  */
 export function createGeminiClient(): GoogleGenAI {
-  loadEnvFile();
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = getStoredApiKey();
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY not set. Get your key from https://aistudio.google.com/apikey");
+    throw new Error(
+      "GEMINI_API_KEY not found. Run `pdf-analyzer --set-key` to store your key. " +
+        "Get your key from https://aistudio.google.com/apikey"
+    );
   }
   return new GoogleGenAI({ apiKey });
 }
@@ -259,7 +237,6 @@ async function analyzePdfDirect(
       systemInstruction: SYSTEM_INSTRUCTION,
       responseMimeType: "application/json",
       responseSchema: GeminiResponseSchema,
-      thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
     },
   });
 
@@ -408,7 +385,6 @@ async function processChunkQueue(
           systemInstruction,
           responseMimeType: "application/json",
           responseSchema: ChunkedGeminiResponseSchema,
-          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
         },
       });
 
@@ -469,7 +445,6 @@ async function processCachedUris(
         systemInstruction,
         responseMimeType: "application/json",
         responseSchema: ChunkedGeminiResponseSchema,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
       },
     });
 

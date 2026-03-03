@@ -217,7 +217,61 @@ function Install-PdfAnalyzerMcp {
     Write-Host "  pdf-analyzer --update"
     Write-Host ""
     Write-Host "Configure your MCP client with:"
-    Write-Host '  {"mcpServers": {"pdf-analyzer": {"command": "pdf-analyzer", "env": {"GEMINI_API_KEY": "your-key"}}}}'
+    Write-Host '  {"mcpServers": {"pdf-analyzer": {"command": "pdf-analyzer"}}}'
+    Write-Host ""
+
+    # Prompt user to store API key
+    Request-ApiKey
+}
+
+function Request-ApiKey {
+    # Check for existing key in Windows Credential Manager
+    $existingKey = $false
+    try {
+        $cmdkeyOutput = cmdkey /list:pdf-analyzer 2>&1
+        if ($cmdkeyOutput -match "pdf-analyzer") {
+            $existingKey = $true
+        }
+    }
+    catch {}
+
+    if ($existingKey) {
+        $overwrite = Read-Host "A Gemini API key is already stored. Overwrite it? [y/N]"
+        if ($overwrite -ne "y" -and $overwrite -ne "Y") {
+            Write-Success "Keeping existing API key."
+            Write-Host ""
+            return
+        }
+    }
+    else {
+        $answer = Read-Host "Would you like to store your Gemini API key now? [y/N]"
+        if ($answer -ne "y" -and $answer -ne "Y") {
+            Write-Host ""
+            Write-Host "You can store your key later with:"
+            Write-Host "  pdf-analyzer --set-key"
+            Write-Host ""
+            return
+        }
+    }
+
+    $secureKey = Read-Host "Enter your Gemini API key" -AsSecureString
+    $apiKey = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+        [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureKey)
+    )
+
+    if ([string]::IsNullOrWhiteSpace($apiKey)) {
+        Write-Warn "No key entered. You can store your key later with: pdf-analyzer --set-key"
+        return
+    }
+
+    try {
+        $null = cmdkey /generic:pdf-analyzer /user:GEMINI_API_KEY /pass:$apiKey 2>&1
+        Write-Success "API key stored successfully."
+    }
+    catch {
+        Write-Warn "Could not store API key in credential store."
+        Write-Host "  You can try again with: pdf-analyzer --set-key"
+    }
     Write-Host ""
 }
 

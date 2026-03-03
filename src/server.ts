@@ -66,13 +66,9 @@ queries on the same document. This avoids re-uploading and is cached by Gemini f
 ## Error Handling
 
 Common errors and solutions:
-- Missing GEMINI_API_KEY: Set the environment variable with your API key
+- Missing GEMINI_API_KEY: Run \`pdf-analyzer --set-key\` to store your API key
 - PDF not found: Verify the path is absolute and file exists
 - URL fetch failed: Check that the URL is accessible and points to a valid PDF
-
-## Environment Variables
-
-- GEMINI_API_KEY: Required. Get your key from https://aistudio.google.com/apikey
 `.trim();
 
 // =============================================================================
@@ -160,10 +156,7 @@ export const createServer = (): McpServer => {
 
         // Provide helpful context for common errors
         if (message.includes("GEMINI_API_KEY")) {
-          return formatError(
-            message,
-            "Set the GEMINI_API_KEY environment variable in your MCP client configuration."
-          );
+          return formatError(message, "Run `pdf-analyzer --set-key` to store your Gemini API key.");
         }
 
         if (message.includes("not found")) {

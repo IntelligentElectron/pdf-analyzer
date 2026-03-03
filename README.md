@@ -75,7 +75,7 @@ After installing the MCP with one of the methods above, you can connect it to yo
 Install [Claude Code](https://docs.anthropic.com/en/docs/claude-code), then run:
 
 ```bash
-claude mcp add --scope user pdf-analyzer --env GEMINI_API_KEY=your-key -- pdf-analyzer
+claude mcp add --scope user pdf-analyzer -- pdf-analyzer
 ```
 
 ### OpenAI Codex
@@ -83,7 +83,7 @@ claude mcp add --scope user pdf-analyzer --env GEMINI_API_KEY=your-key -- pdf-an
 Install [OpenAI Codex](https://developers.openai.com/codex/cli/), then run:
 
 ```bash
-codex mcp add pdf-analyzer --env GEMINI_API_KEY=your-key -- pdf-analyzer
+codex mcp add pdf-analyzer -- pdf-analyzer
 ```
 
 ### Gemini CLI
@@ -91,7 +91,7 @@ codex mcp add pdf-analyzer --env GEMINI_API_KEY=your-key -- pdf-analyzer
 Install [Gemini CLI](https://geminicli.com/docs/get-started/installation/), then run:
 
 ```bash
-gemini mcp add --scope user -e GEMINI_API_KEY=your-key pdf-analyzer pdf-analyzer
+gemini mcp add --scope user pdf-analyzer pdf-analyzer
 ```
 
 ### VS Code (GitHub Copilot)
@@ -105,18 +105,13 @@ Add to `.vscode/mcp.json` in your project:
   "servers": {
     "pdf-analyzer": {
       "type": "stdio",
-      "command": "pdf-analyzer",
-      "env": {
-        "GEMINI_API_KEY": "your-key"
-      }
+      "command": "pdf-analyzer"
     }
   }
 }
 ```
 
 Then enable it in **Configure Tools** (click the tools icon in Copilot chat).
-
-> **Warning:** Do not commit `.vscode/mcp.json` to version control — it contains your API key. Add it to your `.gitignore`.
 
 ## Usage
 

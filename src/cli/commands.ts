@@ -1,5 +1,5 @@
 /**
- * CLI command handlers for --version, --help, --update, and --uninstall.
+ * CLI command handlers for --version, --help, --update, --set-key, and --uninstall.
  */
 
 import * as fs from "node:fs";
@@ -8,6 +8,7 @@ import * as os from "node:os";
 import { VERSION, GITHUB_REPO, BINARY_NAME } from "../version.js";
 import { checkForUpdate, performUpdate } from "./updater.js";
 import { removeFromPath } from "./shell.js";
+import { getStoredApiKey, setStoredApiKey, deleteStoredApiKey } from "../keychain.js";
 
 /**
  * Print version information.
@@ -31,12 +32,16 @@ USAGE:
 
 OPTIONS:
   --version, -v    Print version and exit
+  --set-key        Store your Gemini API key in the OS credential store
   --update         Check for updates and apply if available
   --uninstall      Remove ${BINARY_NAME} from the system
   --help, -h       Show this help message
 
-ENVIRONMENT VARIABLES:
-  GEMINI_API_KEY        Required. Your Gemini API key from Google AI Studio.
+API KEY SETUP:
+  ${BINARY_NAME} --set-key
+
+  Stores your Gemini API key in the OS credential store (macOS Keychain,
+  Windows Credential Manager, or Linux secret-tool).
 
 INSTALLATION:
   curl -fsSL https://raw.githubusercontent.com/${GITHUB_REPO}/main/install.sh | bash
@@ -45,10 +50,7 @@ MCP CONFIGURATION:
   {
     "mcpServers": {
       "pdf-analyzer": {
-        "command": "${BINARY_NAME}",
-        "env": {
-          "GEMINI_API_KEY": "your-api-key-here"
-        }
+        "command": "${BINARY_NAME}"
       }
     }
   }
@@ -77,6 +79,101 @@ const confirm = async (message: string): Promise<boolean> => {
     process.stdin.setEncoding("utf8");
     process.stdin.once("data", onData);
   });
+};
+
+/**
+ * Read a line from the terminal with masked input (each character shown as *).
+ */
+const readMaskedInput = (prompt: string): Promise<string> => {
+  return new Promise((resolve) => {
+    process.stdout.write(prompt);
+
+    const chars: string[] = [];
+
+    if (!process.stdin.isTTY) {
+      // Non-TTY fallback: read a line normally
+      const onData = (data: Buffer) => {
+        process.stdin.removeListener("data", onData);
+        process.stdin.pause();
+        resolve(data.toString().trim());
+      };
+      process.stdin.resume();
+      process.stdin.setEncoding("utf8");
+      process.stdin.once("data", onData);
+      return;
+    }
+
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding("utf8");
+
+    const onData = (key: string) => {
+      // Ctrl+C
+      if (key === "\u0003") {
+        process.stdin.setRawMode(false);
+        process.stdin.removeListener("data", onData);
+        process.stdin.pause();
+        process.stdout.write("\n");
+        process.exit(130);
+      }
+
+      // Enter
+      if (key === "\r" || key === "\n") {
+        process.stdin.setRawMode(false);
+        process.stdin.removeListener("data", onData);
+        process.stdin.pause();
+        process.stdout.write("\n");
+        resolve(chars.join(""));
+        return;
+      }
+
+      // Backspace / Delete
+      if (key === "\u007F" || key === "\b") {
+        if (chars.length > 0) {
+          chars.pop();
+          process.stdout.write("\b \b");
+        }
+        return;
+      }
+
+      // Regular character
+      chars.push(key);
+      process.stdout.write("*");
+    };
+
+    process.stdin.on("data", onData);
+  });
+};
+
+/**
+ * Handle the --set-key flag: store Gemini API key in OS credential store.
+ */
+export const handleSetKeyCommand = async (): Promise<void> => {
+  const existing = getStoredApiKey();
+
+  if (existing) {
+    const overwrite = await confirm("A Gemini API key is already stored. Overwrite it?");
+    if (!overwrite) {
+      console.log("Cancelled.");
+      return;
+    }
+  }
+
+  const key = await readMaskedInput("Enter your Gemini API key: ");
+
+  if (!key) {
+    console.error("No key entered.");
+    process.exit(1);
+  }
+
+  try {
+    setStoredApiKey(key);
+    console.log("API key stored successfully.");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error(`Failed to store API key: ${message}`);
+    process.exit(1);
+  }
 };
 
 /**
@@ -134,6 +231,7 @@ export const handleUninstallCommand = async (): Promise<void> => {
   console.log(`  - Binary: ${binaryPath}`);
   console.log(`  - Directory: ${installDir}`);
   console.log("  - PATH entries from shell config files");
+  console.log("  - Stored API key from OS credential store");
   console.log("");
 
   const confirmed = await confirm("Are you sure you want to uninstall?");
@@ -144,6 +242,10 @@ export const handleUninstallCommand = async (): Promise<void> => {
   }
 
   console.log("");
+
+  // Remove stored API key from OS credential store
+  deleteStoredApiKey();
+  console.log("Removed stored API key");
 
   // Remove PATH entries from shell rc files
   const modifiedFiles = removeFromPath();
