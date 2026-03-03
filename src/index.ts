@@ -8,18 +8,17 @@
  *
  * CLI flags:
  *   --version, -v    Print version and exit
+ *   --set-key        Store Gemini API key in OS credential store
  *   --update         Check for updates and apply if available
  *   --uninstall      Remove pdf-analyzer from the system
  *   --help, -h       Show help
- *
- * Environment variables:
- *   GEMINI_API_KEY        Required. Your Gemini API key.
  */
 
 import { autoUpdate, reexec } from "./cli/updater.js";
 import {
   printVersion,
   printHelp,
+  handleSetKeyCommand,
   handleUpdateCommand,
   handleUninstallCommand,
 } from "./cli/commands.js";
@@ -40,6 +39,12 @@ const main = async (): Promise<void> => {
   // Handle --help / -h
   if (args.includes("--help") || args.includes("-h")) {
     printHelp();
+    return;
+  }
+
+  // Handle --set-key
+  if (args.includes("--set-key")) {
+    await handleSetKeyCommand();
     return;
   }
 

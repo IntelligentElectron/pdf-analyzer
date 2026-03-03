@@ -128,11 +128,9 @@ xcrun notarytool submit pdf-analyzer-darwin-arm64.zip \
 xcrun stapler staple pdf-analyzer-darwin-arm64
 ```
 
-## Environment Variables
+## API Key Storage
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `GEMINI_API_KEY` | Yes | API key from Google AI Studio. Auto-loaded from `.env` in CWD |
+The Gemini API key is stored in the OS credential store (macOS Keychain, Linux `secret-tool`, Windows Credential Manager). Users set it via `pdf-analyzer --set-key` or during installation.
 
 ## CLI Commands
 
@@ -158,7 +156,7 @@ Release marked as `prerelease: true`. GitHub `/releases/latest` ignores prerelea
 ### MCP not connecting
 - Check PATH: `which pdf-analyzer`
 - Restart terminal after install
-- Verify GEMINI_API_KEY is set in MCP client config
+- Verify GEMINI_API_KEY is stored: `pdf-analyzer --set-key`
 
 ### npm OIDC Publishing
 

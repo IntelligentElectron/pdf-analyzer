@@ -292,6 +292,96 @@ main() {
     echo "  2. Click 'Install Extension...' and select:"
     echo "     $mcpb_path"
     echo ""
+
+    # Prompt user to store API key
+    prompt_api_key "$binary_path"
+}
+
+# Prompt user to store their Gemini API key in the OS credential store
+prompt_api_key() {
+    local binary_path="$1"
+
+    # Need /dev/tty for input when running via curl | bash
+    if [ ! -t 0 ] && [ ! -e /dev/tty ]; then
+        echo "To store your API key, run:"
+        echo "  pdf-analyzer --set-key"
+        return
+    fi
+
+    local tty_input="/dev/tty"
+    if [ -t 0 ]; then
+        tty_input="/dev/stdin"
+    fi
+
+    # Check for existing key in the OS credential store
+    local existing=""
+    case "$(uname -s)" in
+        Darwin)
+            existing=$(security find-generic-password -s "pdf-analyzer" -a "GEMINI_API_KEY" -w 2>/dev/null || true)
+            ;;
+        Linux)
+            if command -v secret-tool &>/dev/null; then
+                existing=$(secret-tool lookup service pdf-analyzer username GEMINI_API_KEY 2>/dev/null || true)
+            fi
+            ;;
+    esac
+
+    if [ -n "$existing" ]; then
+        echo -n "A Gemini API key is already stored. Overwrite it? [y/N] "
+        local overwrite
+        read -r overwrite < "$tty_input"
+        if [ "$overwrite" != "y" ] && [ "$overwrite" != "Y" ]; then
+            success "Keeping existing API key."
+            echo ""
+            return
+        fi
+    else
+        echo -n "Would you like to store your Gemini API key now? [y/N] "
+        local answer
+        read -r answer < "$tty_input"
+        if [ "$answer" != "y" ] && [ "$answer" != "Y" ]; then
+            echo ""
+            echo "You can store your key later with:"
+            echo "  pdf-analyzer --set-key"
+            echo ""
+            return
+        fi
+    fi
+
+    echo -n "Enter your Gemini API key: "
+    local api_key
+    read -rs api_key < "$tty_input"
+    echo ""
+
+    if [ -z "$api_key" ]; then
+        warn "No key entered. You can store your key later with: pdf-analyzer --set-key"
+        return
+    fi
+
+    # Store the key using the OS credential store directly
+    local stored=false
+    case "$(uname -s)" in
+        Darwin)
+            if security add-generic-password -s "pdf-analyzer" -a "GEMINI_API_KEY" -w "$api_key" -U 2>/dev/null; then
+                stored=true
+            fi
+            ;;
+        Linux)
+            if command -v secret-tool &>/dev/null; then
+                if echo -n "$api_key" | secret-tool store --label="pdf-analyzer" service pdf-analyzer username GEMINI_API_KEY 2>/dev/null; then
+                    stored=true
+                fi
+            fi
+            ;;
+    esac
+
+    if [ "$stored" = true ]; then
+        success "API key stored successfully."
+    else
+        warn "Could not store API key in credential store."
+        echo "  You can try again with: pdf-analyzer --set-key"
+    fi
+    echo ""
 }
 
 main "$@"
