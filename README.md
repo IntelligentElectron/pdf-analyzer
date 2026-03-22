@@ -3,7 +3,7 @@
 The **PDF Analyzer MCP Server** gives AI agents the ability to read and
 analyze PDF documents, enabling document Q&A through natural conversations.
 
-Powered by Google's Gemini API. You'll need a free API key from Google AI Studio.
+Supports multiple LLM providers: **Google Gemini**, **Anthropic Claude**, and **OpenAI**. Choose your preferred provider and model during setup.
 
 ## Native Install (Recommended)
 
@@ -60,15 +60,27 @@ To update:
 npm update -g @intelligentelectron/pdf-analyzer
 ```
 
-## Get Your Gemini API Key
+## Setup
 
-1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
-2. Create a new API key (free tier available)
-3. Copy your API key, we will use it to setup the MCP in the next section
+After installing, run the interactive setup to choose your provider, model, and enter your API key:
+
+```bash
+pdf-analyzer --setup
+```
+
+You'll be prompted to choose from:
+
+| Provider | Fast Model | Flagship Model | Get API Key |
+|----------|-----------|----------------|-------------|
+| Google Gemini | Gemini 3 Flash | Gemini 3.1 Pro | [Google AI Studio](https://aistudio.google.com/apikey) |
+| Anthropic Claude | Claude Sonnet 4.6 | Claude Opus 4.6 | [Anthropic Console](https://console.anthropic.com/settings/keys) |
+| OpenAI GPT | GPT-5.4 Mini | GPT-5.4 | [OpenAI Platform](https://platform.openai.com/api-keys) |
+
+You can re-run `--setup` at any time to switch providers or models.
 
 ## Connect the MCP with your favorite AI tool
 
-After installing the MCP with one of the methods above, you can connect it to your AI agent of choice.
+After setup, connect the MCP to your AI agent of choice.
 
 ### Claude Code
 
