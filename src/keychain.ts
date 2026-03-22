@@ -1,5 +1,5 @@
 /**
- * OS-native credential storage for GEMINI_API_KEY.
+ * OS-native credential storage.
  *
  * Uses platform CLI tools (no native addons) so it works with Bun-compiled binaries.
  * - macOS: `security` CLI (Keychain Access)
@@ -9,8 +9,7 @@
 
 import { execSync } from "node:child_process";
 
-const DEFAULT_SERVICE_NAME = "pdf-analyzer";
-const ACCOUNT_NAME = "GEMINI_API_KEY";
+const DEFAULT_SERVICE = "pdf-analyzer";
 
 /** Stdio config that prevents credential leaks to MCP stdio transport. */
 const SILENT_STDIO: ["pipe", "pipe", "pipe"] = ["pipe", "pipe", "pipe"];
@@ -27,10 +26,10 @@ export function escapeShellArg(arg: string): string {
 // macOS (Keychain)
 // ---------------------------------------------------------------------------
 
-function getMacOS(service: string): string | null {
+function getMacOS(service: string, account: string): string | null {
   try {
     return execSync(
-      `security find-generic-password -s ${escapeShellArg(service)} -a ${escapeShellArg(ACCOUNT_NAME)} -w`,
+      `security find-generic-password -s ${escapeShellArg(service)} -a ${escapeShellArg(account)} -w`,
       { stdio: SILENT_STDIO, encoding: "utf-8" }
     ).trim();
   } catch {
@@ -38,17 +37,17 @@ function getMacOS(service: string): string | null {
   }
 }
 
-function setMacOS(service: string, key: string): void {
+function setMacOS(service: string, account: string, value: string): void {
   execSync(
-    `security add-generic-password -s ${escapeShellArg(service)} -a ${escapeShellArg(ACCOUNT_NAME)} -w ${escapeShellArg(key)} -U`,
+    `security add-generic-password -s ${escapeShellArg(service)} -a ${escapeShellArg(account)} -w ${escapeShellArg(value)} -U`,
     { stdio: SILENT_STDIO }
   );
 }
 
-function deleteMacOS(service: string): void {
+function deleteMacOS(service: string, account: string): void {
   try {
     execSync(
-      `security delete-generic-password -s ${escapeShellArg(service)} -a ${escapeShellArg(ACCOUNT_NAME)}`,
+      `security delete-generic-password -s ${escapeShellArg(service)} -a ${escapeShellArg(account)}`,
       { stdio: SILENT_STDIO }
     );
   } catch {
@@ -60,9 +59,14 @@ function deleteMacOS(service: string): void {
 // Windows (Credential Manager)
 // ---------------------------------------------------------------------------
 
-function getWindows(service: string): string | null {
+/** Build a Windows credential target from service + account. */
+function winTarget(service: string, account: string): string {
+  return `${service}/${account}`;
+}
+
+function getWindows(service: string, account: string): string | null {
   try {
-    // cmdkey cannot read credential values, so we use PowerShell with P/Invoke
+    const target = winTarget(service, account);
     const script = `
 Add-Type -Namespace Win32 -Name Cred -MemberDefinition @'
 [DllImport("advapi32.dll", SetLastError=true, CharSet=CharSet.Unicode)]
@@ -78,7 +82,7 @@ public struct CREDENTIAL {
 }
 '@
 $ptr = [IntPtr]::Zero
-if ([Win32.Cred]::CredRead("${service}", 1, 0, [ref]$ptr)) {
+if ([Win32.Cred]::CredRead("${target}", 1, 0, [ref]$ptr)) {
   $c = [Runtime.InteropServices.Marshal]::PtrToStructure($ptr, [Type][Win32.Cred+CREDENTIAL])
   $secret = [Runtime.InteropServices.Marshal]::PtrToStringUni($c.CredentialBlob, $c.CredentialBlobSize/2)
   [Win32.Cred]::CredFree($ptr)
@@ -96,16 +100,18 @@ if ([Win32.Cred]::CredRead("${service}", 1, 0, [ref]$ptr)) {
   }
 }
 
-function setWindows(service: string, key: string): void {
-  execSync(`cmdkey /generic:${service} /user:${ACCOUNT_NAME} /pass:${escapeShellArg(key)}`, {
+function setWindows(service: string, account: string, value: string): void {
+  const target = winTarget(service, account);
+  execSync(`cmdkey /generic:${target} /user:${account} /pass:${escapeShellArg(value)}`, {
     stdio: SILENT_STDIO,
     shell: "cmd.exe",
   });
 }
 
-function deleteWindows(service: string): void {
+function deleteWindows(service: string, account: string): void {
   try {
-    execSync(`cmdkey /delete:${service}`, {
+    const target = winTarget(service, account);
+    execSync(`cmdkey /delete:${target}`, {
       stdio: SILENT_STDIO,
       shell: "cmd.exe",
     });
@@ -118,11 +124,11 @@ function deleteWindows(service: string): void {
 // Linux (libsecret / secret-tool)
 // ---------------------------------------------------------------------------
 
-function getLinux(service: string): string | null {
+function getLinux(service: string, account: string): string | null {
   try {
     return (
       execSync(
-        `secret-tool lookup service ${escapeShellArg(service)} username ${escapeShellArg(ACCOUNT_NAME)}`,
+        `secret-tool lookup service ${escapeShellArg(service)} username ${escapeShellArg(account)}`,
         { stdio: SILENT_STDIO, encoding: "utf-8" }
       ).trim() || null
     );
@@ -131,17 +137,17 @@ function getLinux(service: string): string | null {
   }
 }
 
-function setLinux(service: string, key: string): void {
+function setLinux(service: string, account: string, value: string): void {
   execSync(
-    `echo -n ${escapeShellArg(key)} | secret-tool store --label=${escapeShellArg(service)} service ${escapeShellArg(service)} username ${escapeShellArg(ACCOUNT_NAME)}`,
+    `echo -n ${escapeShellArg(value)} | secret-tool store --label=${escapeShellArg(service)} service ${escapeShellArg(service)} username ${escapeShellArg(account)}`,
     { stdio: SILENT_STDIO }
   );
 }
 
-function deleteLinux(service: string): void {
+function deleteLinux(service: string, account: string): void {
   try {
     execSync(
-      `secret-tool clear service ${escapeShellArg(service)} username ${escapeShellArg(ACCOUNT_NAME)}`,
+      `secret-tool clear service ${escapeShellArg(service)} username ${escapeShellArg(account)}`,
       { stdio: SILENT_STDIO }
     );
   } catch {
@@ -150,54 +156,103 @@ function deleteLinux(service: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// Public API
+// Generic credential operations
 // ---------------------------------------------------------------------------
 
-/** Read the stored API key from the OS credential store. Returns null if not found. */
-export function getStoredApiKey(service: string = DEFAULT_SERVICE_NAME): string | null {
+/** Read a value from the OS credential store. */
+export function getStoredValue(account: string, service: string = DEFAULT_SERVICE): string | null {
   switch (process.platform) {
     case "darwin":
-      return getMacOS(service);
+      return getMacOS(service, account);
     case "win32":
-      return getWindows(service);
+      return getWindows(service, account);
     case "linux":
-      return getLinux(service);
+      return getLinux(service, account);
     default:
       return null;
   }
 }
 
-/** Write the API key to the OS credential store. */
-export function setStoredApiKey(key: string, service: string = DEFAULT_SERVICE_NAME): void {
+/** Write a value to the OS credential store. */
+export function setStoredValue(
+  account: string,
+  value: string,
+  service: string = DEFAULT_SERVICE
+): void {
   switch (process.platform) {
     case "darwin":
-      setMacOS(service, key);
+      setMacOS(service, account, value);
       break;
     case "win32":
-      setWindows(service, key);
+      setWindows(service, account, value);
       break;
     case "linux":
-      setLinux(service, key);
+      setLinux(service, account, value);
       break;
     default:
       throw new Error(`Credential storage is not supported on ${process.platform}`);
   }
 }
 
-/** Remove the stored API key from the OS credential store (best-effort). */
-export function deleteStoredApiKey(service: string = DEFAULT_SERVICE_NAME): void {
+/** Remove a value from the OS credential store (best-effort). */
+export function deleteStoredValue(account: string, service: string = DEFAULT_SERVICE): void {
   switch (process.platform) {
     case "darwin":
-      deleteMacOS(service);
+      deleteMacOS(service, account);
       break;
     case "win32":
-      deleteWindows(service);
+      deleteWindows(service, account);
       break;
     case "linux":
-      deleteLinux(service);
+      deleteLinux(service, account);
       break;
     default:
       // No-op on unsupported platforms
       break;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Convenience API for provider and API key storage
+// ---------------------------------------------------------------------------
+
+const PROVIDER_ACCOUNT = "PROVIDER";
+const API_KEY_ACCOUNT = "API_KEY";
+const MODEL_ACCOUNT = "MODEL";
+
+/** Get the active provider ID. Returns null if not set. */
+export function getActiveProvider(): string | null {
+  return getStoredValue(PROVIDER_ACCOUNT);
+}
+
+/** Store the active provider ID. */
+export function setActiveProvider(providerId: string): void {
+  setStoredValue(PROVIDER_ACCOUNT, providerId);
+}
+
+/** Get the stored API key. Returns null if not found. */
+export function getApiKey(): string | null {
+  return getStoredValue(API_KEY_ACCOUNT);
+}
+
+/** Store the API key. */
+export function setApiKey(key: string): void {
+  setStoredValue(API_KEY_ACCOUNT, key);
+}
+
+/** Get the stored model ID. Returns null if not set. */
+export function getModel(): string | null {
+  return getStoredValue(MODEL_ACCOUNT);
+}
+
+/** Store the selected model ID. */
+export function setModel(modelId: string): void {
+  setStoredValue(MODEL_ACCOUNT, modelId);
+}
+
+/** Delete all stored credentials (provider + API key + model). Best-effort. */
+export function deleteAllCredentials(): void {
+  deleteStoredValue(PROVIDER_ACCOUNT);
+  deleteStoredValue(API_KEY_ACCOUNT);
+  deleteStoredValue(MODEL_ACCOUNT);
 }

@@ -1,14 +1,24 @@
 /**
- * CLI command handlers for --version, --help, --update, --set-key, and --uninstall.
+ * CLI command handlers for --version, --help, --setup, --update, and --uninstall.
  */
 
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
+import * as clack from "@clack/prompts";
 import { VERSION, GITHUB_REPO, BINARY_NAME } from "../version.js";
 import { checkForUpdate, performUpdate } from "./updater.js";
 import { removeFromPath } from "./shell.js";
-import { getStoredApiKey, setStoredApiKey, deleteStoredApiKey } from "../keychain.js";
+import {
+  getApiKey,
+  setApiKey,
+  getActiveProvider,
+  setActiveProvider,
+  getModel,
+  setModel,
+  deleteAllCredentials,
+} from "../keychain.js";
+import { providerList } from "../providers/registry.js";
 
 /**
  * Print version information.
@@ -25,22 +35,25 @@ export const printHelp = (): void => {
     `
 ${BINARY_NAME} v${VERSION}
 
-MCP server for analyzing PDF documents using Gemini AI.
+MCP server for analyzing PDF documents using AI.
+Supports Google Gemini, Anthropic Claude, and OpenAI.
 
 USAGE:
   ${BINARY_NAME} [OPTIONS]
 
 OPTIONS:
   --version, -v    Print version and exit
-  --set-key        Store your Gemini API key in the OS credential store
+  --setup          Choose an LLM provider and store your API key
+  --set-key        Alias for --setup (deprecated)
   --update         Check for updates and apply if available
   --uninstall      Remove ${BINARY_NAME} from the system
   --help, -h       Show this help message
 
-API KEY SETUP:
-  ${BINARY_NAME} --set-key
+PROVIDER SETUP:
+  ${BINARY_NAME} --setup
 
-  Stores your Gemini API key in the OS credential store (macOS Keychain,
+  Lets you choose a provider (Google Gemini, Anthropic Claude, or OpenAI)
+  and stores your API key in the OS credential store (macOS Keychain,
   Windows Credential Manager, or Linux secret-tool).
 
 INSTALLATION:
@@ -62,118 +75,93 @@ MORE INFO:
 };
 
 /**
- * Simple confirmation prompt for terminal.
+ * Check if a clack prompt was cancelled (Ctrl+C).
  */
-const confirm = async (message: string): Promise<boolean> => {
-  return new Promise((resolve) => {
-    process.stdout.write(`${message} [y/N] `);
-
-    const onData = (data: Buffer) => {
-      const answer = data.toString().trim().toLowerCase();
-      process.stdin.removeListener("data", onData);
-      process.stdin.pause();
-      resolve(answer === "y" || answer === "yes");
-    };
-
-    process.stdin.resume();
-    process.stdin.setEncoding("utf8");
-    process.stdin.once("data", onData);
-  });
-};
+function assertNotCancelled<T>(value: T | symbol): asserts value is T {
+  if (clack.isCancel(value)) {
+    clack.cancel("Setup cancelled.");
+    process.exit(0);
+  }
+}
 
 /**
- * Read a line from the terminal with masked input (each character shown as *).
+ * Handle the --setup flag: choose provider and store API key.
  */
-const readMaskedInput = (prompt: string): Promise<string> => {
-  return new Promise((resolve) => {
-    process.stdout.write(prompt);
+export const handleSetupCommand = async (): Promise<void> => {
+  clack.intro("pdf-analyzer setup");
 
-    const chars: string[] = [];
+  const existingProvider = getActiveProvider();
+  const existingKey = getApiKey();
+  const existingModel = getModel();
 
-    if (!process.stdin.isTTY) {
-      // Non-TTY fallback: read a line normally
-      const onData = (data: Buffer) => {
-        process.stdin.removeListener("data", onData);
-        process.stdin.pause();
-        resolve(data.toString().trim());
-      };
-      process.stdin.resume();
-      process.stdin.setEncoding("utf8");
-      process.stdin.once("data", onData);
-      return;
-    }
-
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-    process.stdin.setEncoding("utf8");
-
-    const onData = (key: string) => {
-      // Ctrl+C
-      if (key === "\u0003") {
-        process.stdin.setRawMode(false);
-        process.stdin.removeListener("data", onData);
-        process.stdin.pause();
-        process.stdout.write("\n");
-        process.exit(130);
-      }
-
-      // Enter
-      if (key === "\r" || key === "\n") {
-        process.stdin.setRawMode(false);
-        process.stdin.removeListener("data", onData);
-        process.stdin.pause();
-        process.stdout.write("\n");
-        resolve(chars.join(""));
-        return;
-      }
-
-      // Backspace / Delete
-      if (key === "\u007F" || key === "\b") {
-        if (chars.length > 0) {
-          chars.pop();
-          process.stdout.write("\b \b");
-        }
-        return;
-      }
-
-      // Regular character
-      chars.push(key);
-      process.stdout.write("*");
-    };
-
-    process.stdin.on("data", onData);
-  });
-};
-
-/**
- * Handle the --set-key flag: store Gemini API key in OS credential store.
- */
-export const handleSetKeyCommand = async (): Promise<void> => {
-  const existing = getStoredApiKey();
-
-  if (existing) {
-    const overwrite = await confirm("A Gemini API key is already stored. Overwrite it?");
-    if (!overwrite) {
-      console.log("Cancelled.");
+  if (existingProvider && existingKey) {
+    const providerConfig = providerList.find((p) => p.id === existingProvider);
+    const providerName = providerConfig?.displayName ?? existingProvider;
+    const modelName =
+      providerConfig?.models.find((m) => m.id === existingModel)?.displayName ?? existingModel;
+    const shouldReconfigure = await clack.confirm({
+      message: `Already configured with ${providerName} (${modelName}). Reconfigure?`,
+    });
+    assertNotCancelled(shouldReconfigure);
+    if (!shouldReconfigure) {
+      clack.outro("No changes made.");
       return;
     }
   }
 
-  const key = await readMaskedInput("Enter your Gemini API key: ");
+  const providerId = await clack.select({
+    message: "Choose your LLM provider",
+    options: providerList.map((p) => ({
+      value: p.id,
+      label: p.displayName,
+    })),
+  });
+  assertNotCancelled(providerId);
 
-  if (!key) {
-    console.error("No key entered.");
-    process.exit(1);
-  }
+  const selected = providerList.find((p) => p.id === providerId)!;
+
+  const modelId = await clack.select({
+    message: "Choose a model",
+    options: selected.models.map((m) => ({
+      value: m.id,
+      label: `${m.displayName} - ${m.hint}`,
+    })),
+  });
+  assertNotCancelled(modelId);
+
+  const selectedModel = selected.models.find((m) => m.id === modelId)!;
+
+  clack.note(
+    `Model: ${selectedModel.displayName} (${modelId})\nGet your API key from: ${selected.apiKeyUrl}`,
+    selected.displayName
+  );
+
+  const key = await clack.password({
+    message: "Enter your API key",
+    validate: (value) => {
+      if (!value) return "API key is required";
+    },
+  });
+  assertNotCancelled(key);
 
   try {
-    setStoredApiKey(key);
-    console.log("API key stored successfully.");
+    setActiveProvider(selected.id);
+    setModel(modelId);
+    setApiKey(key);
+    clack.outro(`${selected.displayName} (${selectedModel.displayName}) configured successfully.`);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error(`Failed to store API key: ${message}`);
+    clack.cancel(`Failed to store credentials: ${message}`);
     process.exit(1);
   }
+};
+
+/**
+ * Handle the deprecated --set-key flag.
+ */
+export const handleSetKeyCommand = async (): Promise<void> => {
+  clack.log.warn("--set-key is deprecated. Use --setup instead.");
+  await handleSetupCommand();
 };
 
 /**
@@ -200,7 +188,7 @@ export const handleUpdateCommand = async (): Promise<void> => {
     process.exit(1);
   }
 
-  console.log(`Update available: ${VERSION} → ${check.latestVersion}`);
+  console.log(`Update available: ${VERSION} -> ${check.latestVersion}`);
   console.log("Downloading...");
 
   const result = await performUpdate(check.downloadUrl, check.latestVersion);
@@ -210,8 +198,6 @@ export const handleUpdateCommand = async (): Promise<void> => {
     process.exit(1);
   }
 
-  // On Windows, we need to ensure stdout is flushed before exiting
-  // because replacing the running executable can cause issues
   const message = `Successfully updated to ${result.newVersion}\n`;
   await new Promise<void>((resolve) => {
     process.stdout.write(message, () => resolve());
@@ -231,10 +217,13 @@ export const handleUninstallCommand = async (): Promise<void> => {
   console.log(`  - Binary: ${binaryPath}`);
   console.log(`  - Directory: ${installDir}`);
   console.log("  - PATH entries from shell config files");
-  console.log("  - Stored API key from OS credential store");
+  console.log("  - Stored credentials from OS credential store");
   console.log("");
 
-  const confirmed = await confirm("Are you sure you want to uninstall?");
+  const confirmed = await clack.confirm({
+    message: "Are you sure you want to uninstall?",
+  });
+  assertNotCancelled(confirmed);
 
   if (!confirmed) {
     console.log("Uninstall cancelled.");
@@ -243,9 +232,9 @@ export const handleUninstallCommand = async (): Promise<void> => {
 
   console.log("");
 
-  // Remove stored API key from OS credential store
-  deleteStoredApiKey();
-  console.log("Removed stored API key");
+  // Remove all stored credentials
+  deleteAllCredentials();
+  console.log("Removed stored credentials");
 
   // Remove PATH entries from shell rc files
   const modifiedFiles = removeFromPath();

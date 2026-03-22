@@ -1,14 +1,16 @@
 /**
  * PDF Analyzer MCP Server
  *
- * Model Context Protocol server for analyzing PDF documents using Gemini API.
+ * Model Context Protocol server for analyzing PDF documents using
+ * a configurable LLM provider (Google Gemini, Anthropic Claude, or OpenAI).
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { VERSION } from "./version.js";
-import { createGeminiClient, analyzePdf, isApiError, getApiErrorMessage } from "./service.js";
+import { analyzePdf } from "./service.js";
+import { resolveActiveProvider } from "./providers/registry.js";
 
 // =============================================================================
 // Server Instructions
@@ -17,38 +19,38 @@ import { createGeminiClient, analyzePdf, isApiError, getApiErrorMessage } from "
 const SERVER_INSTRUCTIONS = `
 # PDF Analyzer MCP Server
 
-Analyzes PDF documents using Gemini's vision capabilities.
+Analyzes PDF documents using AI vision capabilities. Supports multiple LLM providers
+(Google Gemini, Anthropic Claude, OpenAI).
 
 ## Tool: analyze_pdf
 
-Pass an absolute file path, URL, or Gemini file URI(s) and a list of queries. The server reads the PDF,
-sends it to Gemini with your queries, and returns structured responses.
+Pass an absolute file path, URL, or cached file URI(s) and a list of queries. The server reads the PDF,
+sends it to the configured LLM with your queries, and returns structured responses.
 
-Large PDFs that exceed Gemini's token limit are automatically split into chunks and processed
+Large PDFs that exceed the model's token limit are automatically split into chunks and processed
 sequentially with rolling context. No user intervention is needed.
 
-## Caching Strategy
+## Caching Strategy (Google provider only)
 
-The response includes a \`cached_uris\` array (Gemini File API URIs) that you should reuse for subsequent
-queries on the same document. This avoids re-uploading and is cached by Gemini for 48 hours.
+When using Google Gemini, the response includes a \`cached_uris\` array (Gemini File API URIs)
+that you should reuse for subsequent queries on the same document. This avoids re-uploading
+and is cached by Gemini for 48 hours. Other providers return an empty \`cached_uris\` array.
 
 **Input types accepted:**
 - Local file path: \`/Users/name/docs/report.pdf\`
 - Web URL: \`https://example.com/doc.pdf\`
-- Gemini file URI: \`https://generativelanguage.googleapis.com/v1beta/files/abc123\` (from previous response)
-- Array of Gemini file URIs: for re-analyzing a previously chunked document
+- Gemini file URI: \`https://generativelanguage.googleapis.com/v1beta/files/abc123\` (Google only, from previous response)
+- Array of Gemini file URIs: for re-analyzing a previously chunked document (Google only)
 
-**Workflow for multiple queries on same document:**
-1. First call: pass local path or URL → receive \`cached_uris\` in response
-2. Subsequent calls: pass the \`cached_uris\` value as \`pdf_source\` → no re-upload, faster response
-   - If \`cached_uris\` has one element, pass the single URI string
-   - If \`cached_uris\` has multiple elements (chunked PDF), pass the full array
+**Workflow for multiple queries on same document (Google provider):**
+1. First call: pass local path or URL -> receive \`cached_uris\` in response
+2. Subsequent calls: pass the \`cached_uris\` value as \`pdf_source\` -> no re-upload, faster response
 
 ## Usage Tips
 
 - Ask specific, focused queries for best results
 - For multi-page PDFs, reference page numbers in queries when relevant
-- Reuse the returned \`cached_uris\` for follow-up questions on the same document
+- With Google provider, reuse the returned \`cached_uris\` for follow-up questions
 
 ## Example
 
@@ -66,7 +68,7 @@ queries on the same document. This avoids re-uploading and is cached by Gemini f
 ## Error Handling
 
 Common errors and solutions:
-- Missing GEMINI_API_KEY: Run \`pdf-analyzer --set-key\` to store your API key
+- Missing provider/API key: Run \`pdf-analyzer --setup\` to choose a provider and store your API key
 - PDF not found: Verify the path is absolute and file exists
 - URL fetch failed: Check that the URL is accessible and points to a valid PDF
 `.trim();
@@ -127,12 +129,12 @@ export const createServer = (): McpServer => {
     "analyze_pdf",
     {
       description:
-        "Analyze a PDF document using Gemini AI. Provide an absolute file path, URL, Gemini file URI (from a previous response), or array of Gemini file URIs (from a previous chunked response) and a list of questions to ask about the PDF content. Returns a cached_uris array that can be reused for subsequent queries on the same document (cached by Gemini for 48 hours).",
+        "Analyze a PDF document using AI. Provide an absolute file path, URL, cached file URI (from a previous response, Google only), or array of cached file URIs (from a previous chunked response, Google only) and a list of questions to ask about the PDF content. With the Google provider, returns a cached_uris array that can be reused for subsequent queries on the same document.",
       inputSchema: {
         pdf_source: z
           .union([z.string(), z.array(z.string().min(1)).min(1)])
           .describe(
-            "PDF source: absolute local file path (e.g., /Users/name/docs/report.pdf), URL (e.g., https://example.com/doc.pdf), Gemini file URI from a previous response (e.g., https://generativelanguage.googleapis.com/v1beta/files/abc123), or array of Gemini file URIs from a previous chunked response"
+            "PDF source: absolute local file path, URL, cached file URI from a previous response (Google only), or array of cached file URIs from a previous chunked response (Google only)"
           ),
         queries: z
           .array(z.string().min(1))
@@ -142,28 +144,21 @@ export const createServer = (): McpServer => {
     },
     async ({ pdf_source, queries }) => {
       try {
-        const client = createGeminiClient();
-        const result = await analyzePdf(client, { pdf_source, queries });
+        const { provider, apiKey, modelId } = resolveActiveProvider();
+        const result = await analyzePdf(provider, apiKey, modelId, { pdf_source, queries });
         return formatResult(result);
       } catch (error) {
-        // Handle typed Gemini API errors
-        if (isApiError(error)) {
-          const { message, details } = getApiErrorMessage(error);
-          return formatError(message, details);
-        }
-
         const message = error instanceof Error ? error.message : "Unknown error occurred";
 
-        // Provide helpful context for common errors
-        if (message.includes("GEMINI_API_KEY")) {
-          return formatError(message, "Run `pdf-analyzer --set-key` to store your Gemini API key.");
+        if (message.includes("No provider configured") || message.includes("API key not found")) {
+          return formatError(message);
         }
 
         if (message.includes("not found")) {
           return formatError(message, "Ensure the path is absolute and the file exists.");
         }
 
-        if (message.includes("Failed to fetch PDF from URL")) {
+        if (message.includes("Failed to fetch")) {
           return formatError(
             message,
             "Check that the URL is accessible and points to a valid PDF file."
