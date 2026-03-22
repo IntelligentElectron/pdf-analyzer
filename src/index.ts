@@ -8,7 +8,8 @@
  *
  * CLI flags:
  *   --version, -v    Print version and exit
- *   --set-key        Store Gemini API key in OS credential store
+ *   --setup          Choose LLM provider and store API key
+ *   --set-key        Deprecated alias for --setup
  *   --update         Check for updates and apply if available
  *   --uninstall      Remove pdf-analyzer from the system
  *   --help, -h       Show help
@@ -18,6 +19,7 @@ import { autoUpdate, reexec } from "./cli/updater.js";
 import {
   printVersion,
   printHelp,
+  handleSetupCommand,
   handleSetKeyCommand,
   handleUpdateCommand,
   handleUninstallCommand,
@@ -42,7 +44,13 @@ const main = async (): Promise<void> => {
     return;
   }
 
-  // Handle --set-key
+  // Handle --setup
+  if (args.includes("--setup")) {
+    await handleSetupCommand();
+    return;
+  }
+
+  // Handle --set-key (deprecated alias)
   if (args.includes("--set-key")) {
     await handleSetKeyCommand();
     return;

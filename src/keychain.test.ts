@@ -1,11 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { execSync } from "node:child_process";
-import {
-  escapeShellArg,
-  getStoredApiKey,
-  setStoredApiKey,
-  deleteStoredApiKey,
-} from "./keychain.js";
+import { escapeShellArg, getStoredValue, setStoredValue, deleteStoredValue } from "./keychain.js";
 
 function hasSecretTool(): boolean {
   try {
@@ -55,58 +50,59 @@ describe("escapeShellArg", () => {
 });
 
 describe("platform dispatch", () => {
-  it("getStoredApiKey returns string or null", () => {
-    const result = getStoredApiKey();
+  it("getStoredValue returns string or null", () => {
+    const result = getStoredValue("API_KEY");
     expect(result === null || typeof result === "string").toBe(true);
   });
 
-  it("setStoredApiKey accepts a string", () => {
-    expect(() => setStoredApiKey).not.toThrow();
+  it("setStoredValue accepts a string", () => {
+    expect(() => setStoredValue).not.toThrow();
   });
 
-  it("deleteStoredApiKey does not throw", () => {
-    // deleteStoredApiKey is best-effort; should never throw
-    expect(() => deleteStoredApiKey()).not.toThrow();
+  it("deleteStoredValue does not throw", () => {
+    // deleteStoredValue is best-effort; should never throw
+    expect(() => deleteStoredValue("API_KEY", "pdf-analyzer-test")).not.toThrow();
   });
 });
 
 // Integration tests: only run on the current platform's credential store.
 // Uses a separate service name so tests never touch the real stored key.
 const TEST_SERVICE = "pdf-analyzer-test";
+const TEST_ACCOUNT = "TEST_KEY";
 
 describe.skipIf(process.platform !== "darwin")("macOS keychain integration", () => {
   const TEST_KEY = "test-key-vitest-" + Date.now();
 
-  it("round-trips a key through the keychain", () => {
-    setStoredApiKey(TEST_KEY, TEST_SERVICE);
+  it("round-trips a value through the keychain", () => {
+    setStoredValue(TEST_ACCOUNT, TEST_KEY, TEST_SERVICE);
     try {
-      expect(getStoredApiKey(TEST_SERVICE)).toBe(TEST_KEY);
+      expect(getStoredValue(TEST_ACCOUNT, TEST_SERVICE)).toBe(TEST_KEY);
     } finally {
-      deleteStoredApiKey(TEST_SERVICE);
+      deleteStoredValue(TEST_ACCOUNT, TEST_SERVICE);
     }
     // After deletion, should be null
-    expect(getStoredApiKey(TEST_SERVICE)).toBeNull();
+    expect(getStoredValue(TEST_ACCOUNT, TEST_SERVICE)).toBeNull();
   });
 
   it("handles keys with special characters", () => {
     const specialKey = "AIza!@#$%^&*()_+-=[]|:;<>?,.~`";
-    setStoredApiKey(specialKey, TEST_SERVICE);
+    setStoredValue(TEST_ACCOUNT, specialKey, TEST_SERVICE);
     try {
-      expect(getStoredApiKey(TEST_SERVICE)).toBe(specialKey);
+      expect(getStoredValue(TEST_ACCOUNT, TEST_SERVICE)).toBe(specialKey);
     } finally {
-      deleteStoredApiKey(TEST_SERVICE);
+      deleteStoredValue(TEST_ACCOUNT, TEST_SERVICE);
     }
   });
 
-  it("overwrites existing key with -U flag", () => {
+  it("overwrites existing value", () => {
     const first = "first-key-" + Date.now();
     const second = "second-key-" + Date.now();
-    setStoredApiKey(first, TEST_SERVICE);
+    setStoredValue(TEST_ACCOUNT, first, TEST_SERVICE);
     try {
-      setStoredApiKey(second, TEST_SERVICE);
-      expect(getStoredApiKey(TEST_SERVICE)).toBe(second);
+      setStoredValue(TEST_ACCOUNT, second, TEST_SERVICE);
+      expect(getStoredValue(TEST_ACCOUNT, TEST_SERVICE)).toBe(second);
     } finally {
-      deleteStoredApiKey(TEST_SERVICE);
+      deleteStoredValue(TEST_ACCOUNT, TEST_SERVICE);
     }
   });
 });
@@ -116,14 +112,14 @@ describe.skipIf(process.platform !== "linux" || !hasSecretTool())(
   () => {
     const TEST_KEY = "test-key-vitest-" + Date.now();
 
-    it("round-trips a key through secret-tool", () => {
-      setStoredApiKey(TEST_KEY, TEST_SERVICE);
+    it("round-trips a value through secret-tool", () => {
+      setStoredValue(TEST_ACCOUNT, TEST_KEY, TEST_SERVICE);
       try {
-        expect(getStoredApiKey(TEST_SERVICE)).toBe(TEST_KEY);
+        expect(getStoredValue(TEST_ACCOUNT, TEST_SERVICE)).toBe(TEST_KEY);
       } finally {
-        deleteStoredApiKey(TEST_SERVICE);
+        deleteStoredValue(TEST_ACCOUNT, TEST_SERVICE);
       }
-      expect(getStoredApiKey(TEST_SERVICE)).toBeNull();
+      expect(getStoredValue(TEST_ACCOUNT, TEST_SERVICE)).toBeNull();
     });
   }
 );
@@ -131,13 +127,13 @@ describe.skipIf(process.platform !== "linux" || !hasSecretTool())(
 describe.skipIf(process.platform !== "win32")("Windows credential manager integration", () => {
   const TEST_KEY = "test-key-vitest-" + Date.now();
 
-  it("round-trips a key through credential manager", () => {
-    setStoredApiKey(TEST_KEY, TEST_SERVICE);
+  it("round-trips a value through credential manager", () => {
+    setStoredValue(TEST_ACCOUNT, TEST_KEY, TEST_SERVICE);
     try {
-      expect(getStoredApiKey(TEST_SERVICE)).toBe(TEST_KEY);
+      expect(getStoredValue(TEST_ACCOUNT, TEST_SERVICE)).toBe(TEST_KEY);
     } finally {
-      deleteStoredApiKey(TEST_SERVICE);
+      deleteStoredValue(TEST_ACCOUNT, TEST_SERVICE);
     }
-    expect(getStoredApiKey(TEST_SERVICE)).toBeNull();
+    expect(getStoredValue(TEST_ACCOUNT, TEST_SERVICE)).toBeNull();
   });
 });

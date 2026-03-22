@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { Type, type Schema } from "@google/genai";
 
 /** Schema for the analyze_pdf tool input */
 export const AnalyzePdfInputSchema = z.object({
@@ -22,67 +21,39 @@ export interface QueryResponse {
 
 /** Response from the analyze_pdf tool */
 export interface AnalyzePdfResponse {
+  model: string;
   pdf_source: string | string[];
   cached_uris: string[];
   responses: QueryResponse[];
 }
 
 /**
- * Gemini response schema for structured output.
- * This ensures the model returns a predictable JSON structure.
+ * Zod schema for structured LLM output (single PDF).
+ * Used with AI SDK's Output.object().
  */
-export const GeminiResponseSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    responses: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          query: { type: Type.STRING, description: "The original question" },
-          answer: { type: Type.STRING, description: "The answer based on PDF content" },
-        },
-        required: ["query", "answer"],
-      },
-      description: "Array of query-answer pairs",
-    },
-  },
-  required: ["responses"],
-};
+export const ResponseSchema = z.object({
+  responses: z.array(
+    z.object({
+      query: z.string().describe("The original question"),
+      answer: z.string().describe("The answer based on PDF content"),
+    })
+  ),
+});
 
 /**
- * Gemini response schema for chunked PDF processing.
- * Extends the base schema with a findings_summary field for rolling context.
+ * Zod schema for structured LLM output (chunked PDF).
+ * Extends the base schema with rolling findings.
  */
-export const ChunkedGeminiResponseSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    responses: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          query: { type: Type.STRING, description: "The original question" },
-          answer: { type: Type.STRING, description: "The answer based on PDF content" },
-        },
-        required: ["query", "answer"],
-      },
-      description: "Array of query-answer pairs",
-    },
-    findings_summary: {
-      type: Type.STRING,
-      description:
-        "Summary of findings so far across all processed chunks. Include page citations, partial answers, and what remains unanswered.",
-    },
-  },
-  required: ["responses", "findings_summary"],
-};
+export const ChunkedResponseSchema = ResponseSchema.extend({
+  findings_summary: z
+    .string()
+    .describe(
+      "Summary of findings so far across all processed chunks. Include page citations, partial answers, and what remains unanswered."
+    ),
+});
 
-/** Response from a chunked Gemini call, including rolling findings */
-export interface ChunkedQueryResponse {
-  responses: QueryResponse[];
-  findings_summary: string;
-}
+/** Inferred type for chunked response */
+export type ChunkedQueryResponse = z.infer<typeof ChunkedResponseSchema>;
 
 /** Error response from the tool */
 export interface ToolError {

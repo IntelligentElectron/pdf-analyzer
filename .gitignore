@@ -32,6 +32,3 @@ coverage/
 # Claude
 .claude/settings.local.json
 .mcp.json
-
-# Plans
-.plans/

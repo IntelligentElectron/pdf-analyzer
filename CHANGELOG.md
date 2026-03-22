@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.0] - 2026-03-22
+
+### Added
+- Multi-provider support: Google Gemini, Anthropic Claude, and OpenAI
+- Interactive TUI setup (`--setup`) with provider and model selection using @clack/prompts
+- Model selection per provider: fast (cost-effective) and flagship options
+  - Google: Gemini 3 Flash / Gemini 3.1 Pro
+  - Anthropic: Claude Sonnet 4.6 / Claude Opus 4.6
+  - OpenAI: GPT-5.4 Mini / GPT-5.4
+- Provider-specific PDF handling: Gemini File API for Google, inline bytes for Anthropic and OpenAI
+- Thinking/reasoning set to minimum across all providers (optimized for document analysis)
+
+### Changed
+- Migrated from direct `@google/genai` SDK to Vercel AI SDK V6 for provider abstraction
+- Replaced Gemini-specific `Type.OBJECT` schemas with Zod schemas (`Output.object()`)
+- Generalized keychain storage to support provider ID, model ID, and API key
+- Adaptive chunking now works across all providers (not just Gemini)
+- Response includes `model` field showing which model produced the response
+- `--set-key` is now a deprecated alias for `--setup`
+
+### Removed
+- Legacy `GEMINI_API_KEY` credential and backward-compatibility fallback
+- Direct dependency on `@google/genai` for LLM calls (kept for File API uploads only)
+
 ## [0.2.0] - 2026-03-03
 
 ### Added

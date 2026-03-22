@@ -1,7 +1,7 @@
 {
   "name": "@intelligentelectron/pdf-analyzer",
-  "version": "0.2.0",
-  "description": "MCP server for analyzing PDF documents using Gemini API",
+  "version": "1.0.0",
+  "description": "MCP server for analyzing PDF documents using AI (Google Gemini, Anthropic Claude, OpenAI)",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -44,8 +44,13 @@
     "compile:windows-x64": "bun build --compile --minify --target=bun-windows-x64 --define BUILD_VERSION=\"\\\"$(node -p 'require(\\\"./package.json\\\").version')\\\"\" src/index.ts --outfile=bin/pdf-analyzer-windows-x64.exe"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.63",
+    "@ai-sdk/google": "^3.0.52",
+    "@ai-sdk/openai": "^3.0.47",
+    "@clack/prompts": "^1.1.0",
     "@google/genai": "^1.37.0",
     "@modelcontextprotocol/sdk": "^1.25.2",
+    "ai": "^6.0.134",
     "pdf-lib": "^1.17.1",
     "zod": "^4.1.12"
   },
@@ -71,8 +76,11 @@
   "keywords": [
     "mcp",
     "pdf",
-    "gemini",
     "ai",
-    "document-analysis"
+    "document-analysis",
+    "gemini",
+    "claude",
+    "openai",
+    "multi-provider"
   ]
 }

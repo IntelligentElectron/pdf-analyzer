@@ -18,17 +18,24 @@ git checkout <branch-name>        # Switch to your branch
 git push -u origin <branch-name>  # Push and create PR
 ```
 
-## CRITICAL: Gemini Model
+## CRITICAL: Model Configuration
 
-**ALWAYS use `gemini-3.1-pro-preview` as the model. NEVER change it to any other model (e.g., gemini-2.5-pro-preview, gemini-2.0-flash, etc.).**
+Models per provider (do not change without discussion). Users choose during `--setup`:
 
+- **Google Gemini**: `gemini-3-flash-preview` (fast) / `gemini-3.1-pro-preview` (flagship)
+- **Anthropic Claude**: `claude-sonnet-4-6` (fast) / `claude-opus-4-6` (flagship)
+- **OpenAI**: `gpt-5.4-mini` (fast) / `gpt-5.4` (flagship)
+
+Thinking/reasoning is set to minimum for all models (document analysis doesn't benefit from extended thinking).
+
+References (Google File API for large PDFs):
 - <https://ai.google.dev/gemini-api/docs/document-processing>
-- <https://ai.google.dev/gemini-api/docs/document-processing#large-pdfs> (File API for large PDFs)
-- <https://ai.google.dev/gemini-api/docs/files> (Files API reference)
+- <https://ai.google.dev/gemini-api/docs/document-processing#large-pdfs>
+- <https://ai.google.dev/gemini-api/docs/files>
 
 ## Overview
 
-Standalone MCP server for analyzing PDF documents using Gemini API. Distributed as self-updating binaries for all platforms. Users provide their own Gemini API key.
+Standalone MCP server for analyzing PDF documents using AI. Supports multiple LLM providers (Google Gemini, Anthropic Claude, OpenAI) via the Vercel AI SDK. Distributed as self-updating binaries for all platforms. Users choose their provider and provide an API key during setup.
 
 ## Build & Package
 
@@ -128,9 +135,9 @@ xcrun notarytool submit pdf-analyzer-darwin-arm64.zip \
 xcrun stapler staple pdf-analyzer-darwin-arm64
 ```
 
-## API Key Storage
+## Credential Storage
 
-The Gemini API key is stored in the OS credential store (macOS Keychain, Linux `secret-tool`, Windows Credential Manager). Users set it via `pdf-analyzer --set-key` or during installation.
+The provider ID and API key are stored in the OS credential store (macOS Keychain, Linux `secret-tool`, Windows Credential Manager). Users set them via `pdf-analyzer --setup` or during installation. Backward compatible with the legacy `GEMINI_API_KEY` credential.
 
 ## CLI Commands
 
@@ -138,6 +145,8 @@ The Gemini API key is stored in the OS credential store (macOS Keychain, Linux `
 pdf-analyzer              # Run server (with auto-update check)
 pdf-analyzer --version    # Print version
 pdf-analyzer --help       # Show help
+pdf-analyzer --setup      # Choose provider and store API key
+pdf-analyzer --set-key    # Deprecated alias for --setup
 pdf-analyzer --update     # Manual update check
 pdf-analyzer --uninstall  # Remove binary and PATH entries
 ```
@@ -156,7 +165,7 @@ Release marked as `prerelease: true`. GitHub `/releases/latest` ignores prerelea
 ### MCP not connecting
 - Check PATH: `which pdf-analyzer`
 - Restart terminal after install
-- Verify GEMINI_API_KEY is stored: `pdf-analyzer --set-key`
+- Verify provider is configured: `pdf-analyzer --setup`
 
 ### npm OIDC Publishing
 
