@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.1] - 2026-03-23
+
+### Added
+- `./providers` subpath export for importing provider configs (`googleProvider`, `anthropicProvider`, `openaiProvider`), registry utilities, and provider types directly
+
 ## [1.0.0] - 2026-03-22
 
 ### Added
