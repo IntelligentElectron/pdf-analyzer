@@ -15,3 +15,4 @@
 - [x] Update index.ts - add --setup flag
 - [x] Update tests - all passing
 - [x] Cleanup: package.json, server instructions, CLAUDE.md
+- [x] Add ./providers export to package.json for external consumers
