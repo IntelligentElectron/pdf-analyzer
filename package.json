@@ -1,6 +1,6 @@
 {
   "name": "@intelligentelectron/pdf-analyzer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server for analyzing PDF documents using AI (Google Gemini, Anthropic Claude, OpenAI)",
   "type": "module",
   "main": "dist/index.js",
@@ -13,6 +13,10 @@
     "./service": {
       "types": "./dist/service.d.ts",
       "default": "./dist/service.js"
+    },
+    "./providers": {
+      "types": "./dist/providers/index.d.ts",
+      "default": "./dist/providers/index.js"
     },
     "./types": {
       "types": "./dist/types.d.ts",
