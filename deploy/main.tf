@@ -137,8 +137,15 @@ resource "google_cloud_run_v2_service" "pdf_analyzer" {
 
   template {
     service_account = local.sa_email
+    timeout         = "900s"
 
     containers {
+      resources {
+        limits = {
+          memory = "1Gi"
+        }
+      }
+
       image = local.image
 
       env {

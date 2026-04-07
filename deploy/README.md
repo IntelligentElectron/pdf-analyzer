@@ -158,6 +158,21 @@ This uses Anthropic Claude models routed through Vertex AI. Same service account
 
 Preview models like `gemini-3-flash-preview` and `gemini-3.1-pro-preview` are only available on the [global endpoint](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/learn/locations). If you switch to GA models (e.g., `gemini-2.5-flash`), you can use a regional location like `us-central1` instead.
 
+## Request timeout and memory
+
+The deploy scripts configure Cloud Run with a **15-minute request timeout** and **1 GiB memory**. This is needed because large PDFs (100+ pages) are sent inline to Vertex AI and may require chunking into multiple sequential API calls.
+
+To adjust after deployment:
+
+```bash
+gcloud run services update pdf-analyzer \
+  --timeout=900 \
+  --memory=1Gi \
+  --project=<project-id> --region=<region>
+```
+
+The maximum Cloud Run timeout is 3600 seconds (60 minutes). If you're analyzing very large documents and hitting timeouts, increase it. Memory can also be bumped to `2Gi` if needed for very large PDFs held in memory.
+
 ## Connecting MCP clients
 
 After deployment, add the HTTP MCP server to your client config.
