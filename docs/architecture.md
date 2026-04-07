@@ -164,9 +164,33 @@ curl -X POST https://your-service.run.app/analyze \
 | **GCS `gs://` URIs** | Yes (if ADC available) | Yes (via service account) |
 | **Scaling** | Single user | Auto-scales to zero, handles concurrent requests |
 | **Endpoints** | N/A (stdio) | `/mcp`, `/analyze`, `/health` |
+| **Billing** | Each user pays their own provider | GCP project owner pays for all users |
+| **Caching** | Gemini File API (`cached_uris`) | Not available (Vertex AI, inline bytes only) |
 
 ## Large PDF Handling
 
 Both modes handle large PDFs the same way. When a PDF exceeds the model's token limit, it is automatically split into chunks and processed sequentially with rolling context. The chunking logic lives in `src/chunker.ts` and is transport-agnostic.
 
 In HTTP mode, the Cloud Run service is configured with a 15-minute request timeout and 4 GiB memory to accommodate large documents held entirely in memory as inline bytes (Vertex AI does not support the Gemini File API).
+
+## Caching
+
+The Gemini File API caching (`cached_uris`) only works with the **direct Google provider** in stdio mode. Vertex AI does not support the File API, so `cached_uris` always returns an empty array in HTTP mode. Each request to the Cloud Run service re-sends the full PDF bytes to Vertex AI.
+
+## Billing
+
+The two modes have different billing models:
+
+**Stdio (local):** Each user pays their own LLM provider bill. The API key in their OS credential store is tied to their personal account (Google AI Studio, Anthropic Console, or OpenAI Platform).
+
+**HTTP (Cloud Run):** All costs go to the **GCP project** that hosts the Cloud Run service. This includes:
+
+| Resource | What you pay for |
+|----------|-----------------|
+| Cloud Run | CPU, memory, and network per request. Scales to zero when idle. |
+| Vertex AI | Input and output tokens for every PDF analysis call. |
+| GCS | Storage and download operations for `gs://` URIs (negligible within same region). |
+| Artifact Registry | Container image storage. |
+| Cloud Build | Build minutes during deployment. |
+
+If you deploy this for a team, your project absorbs the Vertex AI bill for all users' queries.
