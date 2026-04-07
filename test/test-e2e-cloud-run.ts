@@ -30,11 +30,6 @@ const HEADERS = {
 // A small, publicly available PDF for testing.
 const PUBLIC_PDF_URL = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
 
-// Minimal valid PDF (header + empty body) for upload tests.
-const MINIMAL_PDF_BASE64 = Buffer.from(
-  "%PDF-1.0\n1 0 obj<</Pages 2 0 R>>endobj 2 0 obj<</Kids[]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF"
-).toString("base64");
-
 let passed = 0;
 let failed = 0;
 
@@ -141,9 +136,9 @@ await test("MCP initialize", async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Test 3: Tool list includes upload_pdf
+// Test 3: Tool list includes analyze_pdf
 // ---------------------------------------------------------------------------
-await test("Tool list includes upload_pdf", async () => {
+await test("Tool list includes analyze_pdf", async () => {
   // Send initialized notification first (required by MCP protocol)
   await fetch(MCP_URL, {
     method: "POST",
@@ -171,7 +166,7 @@ await test("Tool list includes upload_pdf", async () => {
     toolNames.includes("analyze_pdf"),
     `Missing analyze_pdf in tools: ${toolNames.join(", ")}`
   );
-  assert(toolNames.includes("upload_pdf"), `Missing upload_pdf in tools: ${toolNames.join(", ")}`);
+  assert(toolNames.length === 1, `Expected only analyze_pdf, got: ${toolNames.join(", ")}`);
 });
 
 // ---------------------------------------------------------------------------
@@ -214,43 +209,10 @@ await test("Analyze PDF from URL", async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Test 5: Upload + Analyze flow
+// Test 5: Analyze PDF with multiple queries
 // ---------------------------------------------------------------------------
-await test("Upload + Analyze flow", async () => {
-  // Step 1: Upload PDF
-  const uploadRes = await fetch(MCP_URL, {
-    method: "POST",
-    headers: HEADERS,
-    body: JSON.stringify(
-      jsonRpcRequest(
-        "tools/call",
-        {
-          name: "upload_pdf",
-          arguments: {
-            pdf_data: MINIMAL_PDF_BASE64,
-            filename: "e2e-test.pdf",
-          },
-        },
-        4
-      )
-    ),
-  });
-  assert(uploadRes.status === 200, `Upload: expected 200, got ${uploadRes.status}`);
-
-  const uploadData = await parseMcpResponse(uploadRes);
-  assert(
-    uploadData.error === undefined,
-    `Upload JSON-RPC error: ${JSON.stringify(uploadData.error)}`
-  );
-
-  const uploadResult = uploadData.result as Record<string, unknown>;
-  const uploadContent = uploadResult.content as Array<Record<string, unknown>>;
-  const uploadParsed = JSON.parse(uploadContent[0].text as string);
-  assert(typeof uploadParsed.url === "string", "Missing url in upload response");
-  assert(uploadParsed.url.startsWith("gs://"), `Expected gs:// URL, got ${uploadParsed.url}`);
-
-  // Step 2: Analyze the uploaded PDF
-  const analyzeRes = await fetch(MCP_URL, {
+await test("Analyze PDF with multiple queries", async () => {
+  const res = await fetch(MCP_URL, {
     method: "POST",
     headers: HEADERS,
     body: JSON.stringify(
@@ -259,30 +221,24 @@ await test("Upload + Analyze flow", async () => {
         {
           name: "analyze_pdf",
           arguments: {
-            pdf_source: uploadParsed.url,
-            queries: ["What is in this document?"],
+            pdf_source: PUBLIC_PDF_URL,
+            queries: ["What is this document about?", "How many pages does it have?"],
           },
         },
         5
       )
     ),
   });
-  assert(analyzeRes.status === 200, `Analyze: expected 200, got ${analyzeRes.status}`);
+  assert(res.status === 200, `Expected 200, got ${res.status}`);
 
-  const analyzeData = await parseMcpResponse(analyzeRes);
-  assert(
-    analyzeData.error === undefined,
-    `Analyze JSON-RPC error: ${JSON.stringify(analyzeData.error)}`
-  );
+  const data = await parseMcpResponse(res);
+  assert(data.error === undefined, `JSON-RPC error: ${JSON.stringify(data.error)}`);
 
-  const analyzeResult = analyzeData.result as Record<string, unknown>;
-  const analyzeContent = analyzeResult.content as Array<Record<string, unknown>>;
-  const analyzeParsed = JSON.parse(analyzeContent[0].text as string);
-  assert(Array.isArray(analyzeParsed.responses), "Missing responses array in analyze result");
-  assert(
-    analyzeParsed.responses.length === 1,
-    `Expected 1 response, got ${analyzeParsed.responses.length}`
-  );
+  const result = data.result as Record<string, unknown>;
+  const content = result.content as Array<Record<string, unknown>>;
+  const parsed = JSON.parse(content[0].text as string);
+  assert(Array.isArray(parsed.responses), "Missing responses array");
+  assert(parsed.responses.length === 2, `Expected 2 responses, got ${parsed.responses.length}`);
 });
 
 // ---------------------------------------------------------------------------

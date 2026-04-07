@@ -29,9 +29,14 @@ npm-debug.log*
 # Test coverage
 coverage/
 
+# Deploy config (contains project-specific values)
+deploy/env
+deploy/terraform.tfvars
+deploy/.terraform/
+deploy/.terraform.lock.hcl
+deploy/terraform.tfstate*
+
 # Claude
 .claude/settings.local.json
 .mcp.json
 skills-lock.json
-.agents/
-.claude/skills/

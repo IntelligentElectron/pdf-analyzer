@@ -39,6 +39,24 @@ describe("Vertex env var helpers", () => {
   });
 });
 
+describe("preparePdf", () => {
+  it("rejects cachedUri (Vertex does not support File API)", async () => {
+    await expect(
+      vertexProvider.preparePdf({ kind: "cachedUri", uri: "https://example.com/file" }, "")
+    ).rejects.toThrow("Cached URIs are not supported with the Vertex AI provider");
+  });
+
+  it("returns inline bytes for bytes source", async () => {
+    const bytes = new Uint8Array([1, 2, 3]);
+    const result = await vertexProvider.preparePdf({ kind: "bytes", bytes }, "");
+    expect(result.fileParts).toHaveLength(1);
+    expect(result.fileParts[0].type).toBe("file");
+    expect(result.fileParts[0].data).toBeInstanceOf(Uint8Array);
+    expect(result.fileParts[0].mediaType).toBe("application/pdf");
+    expect(result.cachedUri).toBeNull();
+  });
+});
+
 describe("isGoogleTokenLimitError", () => {
   it('detects "input token count exceeds"', () => {
     expect(isGoogleTokenLimitError(new Error("input token count exceeds the limit"))).toBe(true);

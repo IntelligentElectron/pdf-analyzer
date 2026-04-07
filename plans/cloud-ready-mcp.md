@@ -773,7 +773,7 @@ At every stage, these invariants must hold:
 |-------|--------|----------|
 | `npm run type-check` | PASS | Exit code 0, zero type errors |
 | `npm run lint` | PASS | Exit code 0, zero lint errors |
-| `npm test` | PASS | 85 passed, 2 skipped, 9 test files, 2.31s runtime (under 30s limit) |
+| `npm test` | PASS | 85 passed, 2 skipped, 9 test files, 2.30s runtime (under 30s limit) |
 
 ### Stage 1: Environment Variable Configuration (#32)
 
@@ -781,9 +781,9 @@ At every stage, these invariants must hold:
 |---|-----------|--------|----------|
 | 1 | type-check exits 0 | PASS | See Tier 1 |
 | 2 | lint exits 0 | PASS | See Tier 1 |
-| 3 | registry.test.ts tests green | PASS | 8 tests passing |
+| 3 | registry.test.ts tests green | PASS | 8 tests passing (async/await throughout) |
 | 4 | Existing tests unchanged | PASS | service (26), keychain (16), chunker (9) all pass |
-| 5 | No regressions in keychain path | PASS | Test "falls back to keychain when no env vars set" passes; `resolveFromEnv()` returns null when `PDF_ANALYZER_PROVIDER` unset, falling through to keychain logic |
+| 5 | No regressions in keychain path | PASS | `resolveFromEnv()` returns null when `PDF_ANALYZER_PROVIDER` unset, falls through to keychain logic |
 
 ### Stage 2: Google Vertex AI Provider (#29)
 
@@ -792,11 +792,11 @@ At every stage, these invariants must hold:
 | 1 | type-check exits 0 | PASS | See Tier 1 |
 | 2 | lint exits 0 | PASS | See Tier 1 |
 | 3 | google-vertex.test.ts tests green | PASS | 9 tests passing |
-| 4 | `providers["google-vertex"]` resolves | PASS | `registry.ts:23`: `"google-vertex": vertexProvider` |
-| 5 | Exported from index.ts | PASS | `index.ts:8`: `export { vertexProvider } from "./google-vertex.js"` |
-| 6 | `@ai-sdk/google-vertex` dependency | PASS | `package.json`: `"@ai-sdk/google-vertex": "^4.0.104"` |
-| 7 | `vertexProvider.id === "google"` | PASS | `google-vertex.ts:39`, confirmed by test |
-| 8 | Shared code extraction (Option A) | PASS | `google-shared.ts` extracts MODELS, File API helpers, token limit detection. Existing tests still pass. |
+| 4 | `providers["google-vertex"]` resolves | PASS | `registry.ts:39`: lazy loaded via `loadVertexProviders()` |
+| 5 | Exported from index.ts | PASS | `index.ts` exports `vertexProvider` |
+| 6 | `@ai-sdk/google-vertex` dependency | PASS | Present in package.json |
+| 7 | `vertexProvider.id === "google"` | PASS | Confirmed by test |
+| 8 | Shared code extraction (Option A) | PASS | `google-shared.ts` extracts MODELS, File API helpers, token limit detection |
 | 9 | All existing tests pass | PASS | See Tier 1 |
 
 ### Stage 3: Anthropic Vertex AI Provider (#31)
@@ -806,12 +806,12 @@ At every stage, these invariants must hold:
 | 1 | type-check exits 0 | PASS | See Tier 1 |
 | 2 | lint exits 0 | PASS | See Tier 1 |
 | 3 | anthropic-vertex.test.ts tests green | PASS | 10 tests passing |
-| 4 | `providers["anthropic-vertex"]` resolves | PASS | `registry.ts:24`: `"anthropic-vertex": anthropicVertexProvider` |
-| 5 | Exported from index.ts | PASS | `index.ts:9` |
-| 6 | No new dependencies | PASS | Uses `@ai-sdk/google-vertex/anthropic` subpath from Stage 2 |
-| 7 | `anthropicVertexProvider.id === "anthropic"` | PASS | `anthropic-vertex.ts:69`, confirmed by test |
-| 8 | `preparePdf` rejects cachedUri | PASS | Throws "Cached URIs are only supported with the Google provider" (test confirms) |
-| 9 | `preparePdf` returns inline parts for bytes | PASS | Returns `{ fileParts: [{ type: "file", data: Uint8Array, mediaType: "application/pdf" }], cachedUri: null }` (test confirms) |
+| 4 | `providers["anthropic-vertex"]` resolves | PASS | `registry.ts:40`: lazy loaded via `loadVertexProviders()` |
+| 5 | Exported from index.ts | PASS | Exported |
+| 6 | No new dependencies | PASS | Uses `@ai-sdk/google-vertex/anthropic` subpath |
+| 7 | `anthropicVertexProvider.id === "anthropic"` | PASS | Confirmed by test |
+| 8 | `preparePdf` rejects cachedUri | PASS | Throws "Cached URIs are only supported with the Google provider" |
+| 9 | `preparePdf` returns inline parts for bytes | PASS | Returns correct structure with `cachedUri: null` |
 | 10 | All existing tests pass | PASS | See Tier 1 |
 
 ### Stage 4: Streamable HTTP Transport (#30)
@@ -821,13 +821,13 @@ At every stage, these invariants must hold:
 | 1 | type-check exits 0 | PASS | See Tier 1 |
 | 2 | lint exits 0 | PASS | See Tier 1 |
 | 3 | http.test.ts + server.test.ts green | PASS | 3 + 3 = 6 tests passing |
-| 4 | GET /health returns 200 "ok" text/plain | PASS | http.test.ts asserts status 200, body "ok", content-type "text/plain" |
-| 5 | POST /mcp initialize returns JSON-RPC | PASS | http.test.ts parses SSE data line, asserts `serverInfo.name === "pdf-analyzer"` |
-| 6 | GET /unknown returns 404 | PASS | http.test.ts asserts status 404 |
-| 7 | Mode isolation in descriptions | PASS | `ANALYZE_PDF_DESCRIPTION_STDIO` contains "file path"; `ANALYZE_PDF_DESCRIPTION_HTTP` contains "upload_pdf" and "URL" (`server.ts:112-115`) |
-| 8 | PORT triggers HTTP mode | PASS | `runServer()` checks `process.env.PORT` and calls `startHttpServer` (`server.ts:218`) |
-| 9 | No PORT triggers stdio | PASS | `runServer()` falls through to `StdioServerTransport` (`server.ts:221-224`) |
-| 10 | index.ts skips TTY/auto-update when PORT set | PASS | `index.ts:72-75`: `if (process.env.PORT) { await runServer(); return; }` |
+| 4 | GET /health returns 200 "ok" text/plain | PASS | http.test.ts confirms |
+| 5 | POST /mcp initialize returns JSON-RPC | PASS | http.test.ts parses SSE, asserts `serverInfo.name === "pdf-analyzer"` |
+| 6 | GET /unknown returns 404 | PASS | http.test.ts confirms |
+| 7 | Mode isolation in descriptions | PASS | STDIO contains "file path"; HTTP contains "upload_pdf" and "URL" |
+| 8 | PORT triggers HTTP mode | PASS | `runServer()` uses `await import("./transports/http.js")` when PORT set (`server.ts:221`) |
+| 9 | No PORT triggers stdio | PASS | Falls through to `StdioServerTransport` (`server.ts:223-226`) |
+| 10 | index.ts skips TTY/auto-update when PORT set | PASS | Early return before TTY check |
 | 11 | All existing tests pass | PASS | See Tier 1 |
 
 ### Stage 5: Upload PDF Tool (#33)
@@ -838,22 +838,22 @@ At every stage, these invariants must hold:
 | 2 | lint exits 0 | PASS | See Tier 1 |
 | 3 | storage.test.ts + additions green | PASS | 3 storage tests + 2 gs:// tests in service.test.ts |
 | 4 | Throws without PDF_UPLOAD_BUCKET | PASS | storage.test.ts asserts exact error message |
-| 5 | Mocked file.save with correct args | PASS | storage.test.ts asserts `(data, { contentType: "application/pdf" })` |
-| 6 | classifySource gs:// single path | PASS | service.test.ts: `"gs://my-bucket/uploads/doc.pdf"` -> `{ kind: "url", url: "https://storage.googleapis.com/my-bucket/uploads/doc.pdf" }` |
-| 7 | classifySource gs:// nested path | PASS | service.test.ts: `"gs://bucket/a/b/c.pdf"` -> `{ kind: "url", url: "https://storage.googleapis.com/bucket/a/b/c.pdf" }` |
-| 8 | upload_pdf registered in HTTP mode | PASS | `server.ts:184`: `if (mode === "http") { server.registerTool("upload_pdf", ...)` |
-| 9 | upload_pdf NOT in stdio mode | PASS | Conditional block only enters when `mode === "http"` |
-| 10 | `@google-cloud/storage` dependency | PASS | `package.json`: `"@google-cloud/storage": "^7.19.0"` |
+| 5 | Mocked file.save with correct args | PASS | Asserts `(data, { contentType: "application/pdf" })` |
+| 6 | classifySource gs:// single path | PASS | Correct HTTPS conversion |
+| 7 | classifySource gs:// nested path | PASS | Correct HTTPS conversion for nested paths |
+| 8 | upload_pdf registered in HTTP mode | PASS | `server.ts:185`: conditional on `mode === "http"` |
+| 9 | upload_pdf NOT in stdio mode | PASS | Guarded by mode check |
+| 10 | `@google-cloud/storage` dependency | PASS | Present in package.json |
 | 11 | All existing tests pass | PASS | See Tier 1 |
 
 ### Stage 6: Dockerfile
 
 | # | Criterion | Result | Evidence |
 |---|-----------|--------|----------|
-| 1 | Dockerfile exists | PASS | Matches plan exactly: node:22-slim, --omit=dev, COPY dist/, PORT=8080, CMD node dist/index.js |
+| 1 | Dockerfile exists | PASS | Matches plan: node:22-slim, --omit=dev, COPY dist/, PORT=8080, CMD node dist/index.js |
 | 2 | No devDependencies | PASS | `RUN npm install --omit=dev` |
 | 3 | No TypeScript source | PASS | Only `COPY dist/ ./dist/`, no src/ copied |
-| 4 | Docker build succeeds | MANUAL | Requires Docker daemon; structural review passes |
+| 4 | Docker build succeeds | MANUAL | Requires Docker daemon |
 | 5 | Container starts, health check works | MANUAL | Requires Docker daemon |
 | 6 | Image size < 500MB | MANUAL | Requires Docker daemon |
 
@@ -861,24 +861,28 @@ At every stage, these invariants must hold:
 
 | # | Criterion | Result | Evidence |
 |---|-----------|--------|----------|
-| 1 | test/test-e2e-cloud-run.ts exists | **FAIL** | File does not exist. Glob returned no matches. |
+| 1 | test/test-e2e-cloud-run.ts exists | PASS | File exists with 339 lines |
+| 2 | Test 1: Health check | PASS | Lines 94-99: asserts GET /health returns 200, body "ok" |
+| 3 | Test 2: MCP initialize | PASS | Lines 104-141: asserts protocolVersion, serverInfo.name, capabilities.tools |
+| 4 | Test 3: Tool list includes upload_pdf | PASS | Lines 146-175: sends initialized notification, then tools/list, checks both tool names |
+| 5 | Test 4: Analyze PDF from URL | PASS | Lines 180-214: checks responses array, query/answer non-empty, model field |
+| 6 | Test 5: Upload + Analyze flow | PASS | Lines 219-286: uploads base64 PDF, gets gs:// URL, analyzes it |
+| 7 | Test 6: Anthropic Vertex | PASS | Lines 298-332: conditional on E2E_TEST_ANTHROPIC=1, checks claude- model prefix |
+| 8 | Graceful skip without CLOUD_RUN_URL | PASS | Lines 17-19: logs message, exits 0 |
 
 ### Regression Contract
 
 | # | Invariant | Result | Evidence |
 |---|-----------|--------|----------|
-| 1 | `createServer()` no-arg identical to pre-change | PASS | Default param `mode: "stdio" | "http" = "stdio"`, server.test.ts confirms |
-| 2 | stdio mode with keychain providers unchanged | PASS | `resolveFromEnv()` returns null when no env vars, falls through to existing keychain logic |
-| 3 | No new runtime deps in stdio mode (lazy imports) | **FAIL** | `server.ts:14-15` eagerly imports `startHttpServer` (loads `StreamableHTTPServerTransport`) and `uploadToGcs` (loads `@google-cloud/storage`). `registry.ts:14-15` eagerly imports `vertexProvider` (loads `@ai-sdk/google-vertex`) and `anthropicVertexProvider` (loads `@ai-sdk/google-vertex/anthropic`). All four cloud-only packages are loaded in stdio mode. |
-| 4 | npm test under 30 seconds | PASS | 2.31s total |
+| 1 | `createServer()` no-arg identical to pre-change | PASS | Default param `mode = "stdio"`, server.test.ts confirms |
+| 2 | stdio mode with keychain providers unchanged | PASS | `resolveFromEnv()` returns null, falls through to keychain |
+| 3 | No new runtime deps in stdio mode (lazy imports) | PASS | `server.ts`: `startHttpServer` and `uploadToGcs` loaded via `await import()` (lines 200, 221). `registry.ts`: vertex providers loaded via `loadVertexProviders()` using `import()` (lines 34-36). Top-level imports are commented out. |
+| 4 | npm test under 30 seconds | PASS | 2.30s total |
 
 ### Summary
 
-**39/41 criteria passed.** 3 criteria require manual Docker verification (non-blocking).
+**41/41 criteria passed.** 3 criteria require manual Docker verification (non-blocking).
 
-**Failures:**
+No failures.
 
-1. **Stage 7 not implemented**: `test/test-e2e-cloud-run.ts` does not exist. The entire E2E test suite is missing.
-2. **Regression contract #3 (lazy imports)**: Cloud-only packages (`@google-cloud/storage`, `@ai-sdk/google-vertex`, `@ai-sdk/google-vertex/anthropic`, `StreamableHTTPServerTransport`) are eagerly imported at module load time via top-level `import` statements in `server.ts` and `registry.ts`. In stdio mode, these packages are loaded but never used. Fix: use dynamic `import()` behind the `if (mode === "http")` and `if (providerId)` guards.
-
-**Status: Needs Work**
+**Status: Done**

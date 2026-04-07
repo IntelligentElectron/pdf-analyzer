@@ -129,19 +129,19 @@ describe("AnalyzePdfInputSchema", () => {
 });
 
 describe("classifySource", () => {
-  it("converts gs:// URL to HTTPS storage URL", () => {
+  it("passes gs:// URL through for GCS download in analyzePdf", () => {
     const result = classifySource("gs://my-bucket/uploads/doc.pdf");
     expect(result).toEqual({
       kind: "url",
-      url: "https://storage.googleapis.com/my-bucket/uploads/doc.pdf",
+      url: "gs://my-bucket/uploads/doc.pdf",
     });
   });
 
-  it("handles nested gs:// paths", () => {
+  it("passes nested gs:// paths through", () => {
     const result = classifySource("gs://bucket/a/b/c.pdf");
     expect(result).toEqual({
       kind: "url",
-      url: "https://storage.googleapis.com/bucket/a/b/c.pdf",
+      url: "gs://bucket/a/b/c.pdf",
     });
   });
 

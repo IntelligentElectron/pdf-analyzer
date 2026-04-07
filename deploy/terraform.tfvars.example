@@ -1,0 +1,25 @@
+# Terraform variables for deploying pdf-analyzer to Cloud Run.
+# Copy this file to deploy/terraform.tfvars and fill in your values.
+#
+#   cp deploy/terraform.tfvars.example deploy/terraform.tfvars
+
+# Required: your GCP project ID
+project_id = "my-project-123"
+
+# Optional: GCP region (default: "us-central1")
+# region = "us-central1"
+
+# Optional: Vertex AI endpoint location (default: "global").
+# Use "global" for preview models (gemini-3-flash-preview, gemini-3.1-pro-preview).
+# Use a region like "us-central1" for GA models (gemini-2.5-flash).
+# vertex_location = "global"
+
+# Optional: Artifact Registry repository name (default: "pdf-analyzer").
+# ar_repository = "pdf-analyzer"
+
+# Optional: use an existing service account instead of creating one.
+# The service account must have roles/aiplatform.user and roles/storage.objectViewer.
+# service_account_email = "my-sa@my-project-123.iam.gserviceaccount.com"
+
+# Optional: container image URI. Leave empty to auto-generate.
+# image = "us-central1-docker.pkg.dev/my-project/pdf-analyzer/pdf-analyzer:latest"

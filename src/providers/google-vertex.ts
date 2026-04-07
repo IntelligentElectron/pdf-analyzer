@@ -2,19 +2,19 @@
  * Google Vertex AI provider.
  *
  * Uses ADC (Application Default Credentials) instead of API keys.
- * Shares models, File API logic, and provider options with the direct Google provider.
+ * Vertex AI does not support the Gemini File API, so PDFs are sent inline
+ * as bytes (same approach as Anthropic). No caching.
  */
 
-import { GoogleGenAI } from "@google/genai";
 import { createVertex } from "@ai-sdk/google-vertex";
-import type { ProviderConfig, PdfSource, PreparedPdf } from "./types.js";
+import type { ProviderConfig, PdfSource, PreparedPdf, PdfFilePart } from "./types.js";
 import {
   GOOGLE_MODELS,
   GOOGLE_DEFAULT_MODEL,
   GOOGLE_PROVIDER_OPTIONS,
-  prepareGooglePdf,
   isGoogleTokenLimitError,
 } from "./google-shared.js";
+import { fetchPdfFromUrl, readPdfBytes } from "../pdf-utils.js";
 
 function getProject(): string {
   const p = process.env.VERTEX_PROJECT;
@@ -27,12 +27,26 @@ function getLocation(): string {
 }
 
 async function preparePdf(source: PdfSource): Promise<PreparedPdf> {
-  const client = new GoogleGenAI({
-    vertexai: true,
-    project: getProject(),
-    location: getLocation(),
-  });
-  return prepareGooglePdf(client, source);
+  if (source.kind === "cachedUri") {
+    throw new Error("Cached URIs are not supported with the Vertex AI provider.");
+  }
+
+  let bytes: Uint8Array;
+
+  if (source.kind === "bytes") {
+    bytes = source.bytes;
+  } else if (source.kind === "url") {
+    bytes = new Uint8Array(await fetchPdfFromUrl(source.url));
+  } else {
+    bytes = new Uint8Array(readPdfBytes(source.path));
+  }
+
+  const part: PdfFilePart = {
+    type: "file",
+    data: bytes,
+    mediaType: "application/pdf",
+  };
+  return { fileParts: [part], cachedUri: null };
 }
 
 export const vertexProvider: ProviderConfig = {

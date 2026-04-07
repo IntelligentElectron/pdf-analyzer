@@ -13,7 +13,6 @@ import { analyzePdf } from "./service.js";
 import { resolveActiveProvider } from "./providers/registry.js";
 // Cloud-only modules loaded lazily to avoid pulling in heavy deps in stdio mode.
 // import { startHttpServer } from "./transports/http.js";
-// import { uploadToGcs } from "./storage.js";
 
 // =============================================================================
 // Server Instructions
@@ -178,35 +177,6 @@ export const createServer = (mode: "stdio" | "http" = "stdio"): McpServer => {
       }
     }
   );
-
-  // -------------------------------------------------------------------------
-  // Tool: upload_pdf (HTTP mode only)
-  // -------------------------------------------------------------------------
-  if (mode === "http") {
-    server.registerTool(
-      "upload_pdf",
-      {
-        description:
-          "Upload a PDF to cloud storage for analysis. Returns a gs:// URL to pass to analyze_pdf.",
-        inputSchema: {
-          pdf_data: z.string().describe("Base64-encoded PDF file contents"),
-          filename: z.string().optional().describe("Optional original filename"),
-        },
-      },
-      async ({ pdf_data, filename }) => {
-        try {
-          const bytes = Buffer.from(pdf_data, "base64");
-          const name = filename || `upload-${Date.now()}.pdf`;
-          const { uploadToGcs } = await import("./storage.js");
-          const url = await uploadToGcs(bytes, name);
-          return formatResult({ url, filename: name });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Unknown error occurred";
-          return formatError(message);
-        }
-      }
-    );
-  }
 
   return server;
 };
