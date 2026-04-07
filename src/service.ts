@@ -1,14 +1,10 @@
 import { generateText, Output } from "ai";
-import type {
-  AnalyzePdfInput,
-  AnalyzePdfResponse,
-  ChunkedQueryResponse,
-  QueryResponse,
-} from "./types.js";
+import { z } from "zod";
+import type { AnalyzePdfInput, AnalyzePdfResponse, QueryResponse } from "./types.js";
 import { ResponseSchema, ChunkedResponseSchema } from "./types.js";
 import { pdfBytesToChunk, splitPdfInHalf } from "./chunker.js";
 import type { PdfChunk } from "./chunker.js";
-import type { ProviderConfig, PdfSource } from "./providers/types.js";
+import type { ProviderConfig, PdfSource, PreparedPdf } from "./providers/types.js";
 import { isGeminiFileUri, isUrl, fetchPdfFromUrl, readPdfBytes } from "./pdf-utils.js";
 
 const SYSTEM_INSTRUCTION = `You are a document analysis assistant. Analyze PDF documents and answer questions based on their content.
@@ -22,6 +18,37 @@ Always respond with accurate information from the document.`;
 function buildUserPrompt(queries: string[]): string {
   const queriesText = queries.map((q, i) => `${i + 1}. ${q}`).join("\n");
   return `Please analyze the attached PDF and answer these questions:\n\n${queriesText}`;
+}
+
+/**
+ * Call the LLM with a prepared PDF and return the parsed response.
+ */
+async function callLlm<T>(
+  provider: ProviderConfig,
+  apiKey: string,
+  modelId: string,
+  prepared: PreparedPdf,
+  queries: string[],
+  systemInstruction: string,
+  schema: z.ZodType<T>
+): Promise<{ parsed: T; cachedUri: string | null }> {
+  const model = provider.createModel(apiKey, modelId);
+  const { text } = await generateText({
+    model,
+    system: systemInstruction,
+    output: Output.object({ schema }),
+    providerOptions: provider.providerOptions,
+    messages: [
+      {
+        role: "user",
+        content: [...prepared.fileParts, { type: "text" as const, text: buildUserPrompt(queries) }],
+      },
+    ],
+  });
+
+  const responseText = text ?? "{}";
+  const parsed = JSON.parse(responseText) as T;
+  return { parsed, cachedUri: prepared.cachedUri };
 }
 
 /** Maximum chunk size for File API upload: 50MB x 0.85 safety margin. */
@@ -56,23 +83,15 @@ async function analyzePdfDirect(
   queries: string[]
 ): Promise<AnalyzePdfResponse> {
   const prepared = await provider.preparePdf(source, apiKey);
-
-  const model = provider.createModel(apiKey, modelId);
-  const { text } = await generateText({
-    model,
-    system: SYSTEM_INSTRUCTION,
-    output: Output.object({ schema: ResponseSchema }),
-    providerOptions: provider.providerOptions,
-    messages: [
-      {
-        role: "user",
-        content: [...prepared.fileParts, { type: "text" as const, text: buildUserPrompt(queries) }],
-      },
-    ],
-  });
-
-  const responseText = text ?? "{}";
-  const parsed = JSON.parse(responseText) as { responses: QueryResponse[] };
+  const { parsed, cachedUri } = await callLlm(
+    provider,
+    apiKey,
+    modelId,
+    prepared,
+    queries,
+    SYSTEM_INSTRUCTION,
+    ResponseSchema
+  );
 
   const pdfSourceValue =
     source.kind === "cachedUri"
@@ -86,7 +105,7 @@ async function analyzePdfDirect(
   return {
     model: modelId,
     pdf_source: pdfSourceValue,
-    cached_uris: prepared.cachedUri ? [prepared.cachedUri] : [],
+    cached_uris: cachedUri ? [cachedUri] : [],
     responses: ensureAllQueriesAnswered(queries, parsed.responses),
   };
 }
@@ -176,28 +195,18 @@ async function processChunkQueue(
     );
 
     try {
-      const model = provider.createModel(apiKey, modelId);
-      const { text } = await generateText({
-        model,
-        system: systemInstruction,
-        output: Output.object({ schema: ChunkedResponseSchema }),
-        providerOptions: provider.providerOptions,
-        messages: [
-          {
-            role: "user",
-            content: [
-              ...prepared.fileParts,
-              { type: "text" as const, text: buildUserPrompt(queries) },
-            ],
-          },
-        ],
-      });
-
-      const responseText = text ?? "{}";
-      const parsed = JSON.parse(responseText) as ChunkedQueryResponse;
+      const { parsed, cachedUri } = await callLlm(
+        provider,
+        apiKey,
+        modelId,
+        prepared,
+        queries,
+        systemInstruction,
+        ChunkedResponseSchema
+      );
       previousFindings = parsed.findings_summary;
-      if (prepared.cachedUri) {
-        cachedUris.push(prepared.cachedUri);
+      if (cachedUri) {
+        cachedUris.push(cachedUri);
       }
       processedCount++;
 
@@ -238,25 +247,15 @@ async function processCachedUris(
     const prepared = await provider.preparePdf({ kind: "cachedUri", uri: fileUris[i] }, apiKey);
     const systemInstruction = buildChunkedSystemInstruction(i, fileUris.length, previousFindings);
 
-    const model = provider.createModel(apiKey, modelId);
-    const { text } = await generateText({
-      model,
-      system: systemInstruction,
-      output: Output.object({ schema: ChunkedResponseSchema }),
-      providerOptions: provider.providerOptions,
-      messages: [
-        {
-          role: "user",
-          content: [
-            ...prepared.fileParts,
-            { type: "text" as const, text: buildUserPrompt(queries) },
-          ],
-        },
-      ],
-    });
-
-    const responseText = text ?? "{}";
-    const parsed = JSON.parse(responseText) as ChunkedQueryResponse;
+    const { parsed } = await callLlm(
+      provider,
+      apiKey,
+      modelId,
+      prepared,
+      queries,
+      systemInstruction,
+      ChunkedResponseSchema
+    );
     previousFindings = parsed.findings_summary;
 
     if (i === fileUris.length - 1) {
@@ -272,9 +271,6 @@ async function processCachedUris(
   throw new Error("No URIs to process");
 }
 
-/**
- * Classify the pdf_source input into a PdfSource discriminated union.
- */
 /**
  * Download a PDF from a gs:// URI using the GCS client (ADC auth).
  */
