@@ -142,7 +142,7 @@ resource "google_cloud_run_v2_service" "pdf_analyzer" {
     containers {
       resources {
         limits = {
-          memory = "1Gi"
+          memory = "4Gi"
         }
       }
 

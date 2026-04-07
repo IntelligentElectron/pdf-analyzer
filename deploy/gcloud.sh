@@ -101,7 +101,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --set-env-vars "PDF_ANALYZER_PROVIDER=google-vertex,VERTEX_PROJECT=${PROJECT_ID},VERTEX_LOCATION=${VERTEX_LOCATION}" \
   --service-account "${SA_EMAIL}" \
   --timeout=900 \
-  --memory=1Gi \
+  --memory=4Gi \
   --allow-unauthenticated \
   --quiet
 

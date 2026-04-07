@@ -160,18 +160,18 @@ Preview models like `gemini-3-flash-preview` and `gemini-3.1-pro-preview` are on
 
 ## Request timeout and memory
 
-The deploy scripts configure Cloud Run with a **15-minute request timeout** and **1 GiB memory**. This is needed because large PDFs (100+ pages) are sent inline to Vertex AI and may require chunking into multiple sequential API calls.
+The deploy scripts configure Cloud Run with a **15-minute request timeout** and **4 GiB memory**. This is needed because large PDFs (100+ pages) are sent inline to Vertex AI and may require chunking into multiple sequential API calls. The PDF bytes, base64 encoding, and V8 heap overhead can exceed 1 GiB for large documents.
 
 To adjust after deployment:
 
 ```bash
 gcloud run services update pdf-analyzer \
   --timeout=900 \
-  --memory=1Gi \
+  --memory=4Gi \
   --project=<project-id> --region=<region>
 ```
 
-The maximum Cloud Run timeout is 3600 seconds (60 minutes). If you're analyzing very large documents and hitting timeouts, increase it. Memory can also be bumped to `2Gi` if needed for very large PDFs held in memory.
+The maximum Cloud Run timeout is 3600 seconds (60 minutes). If you're analyzing very large documents and hitting timeouts, increase it. Memory can be bumped to `8Gi` if needed for exceptionally large PDFs.
 
 ## Connecting MCP clients
 
