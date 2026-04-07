@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.2.1] - 2026-04-06
+
+### Changed
+- Refactored LLM call logic into shared `callLlm` helper, reducing ~25 lines of duplication across three call sites
+- CI: switched npm publish job from Node 22 to Node 24 (fixes broken npm in GitHub Actions runner images)
+
 ## [1.2.0] - 2026-04-06
 
 ### Added
