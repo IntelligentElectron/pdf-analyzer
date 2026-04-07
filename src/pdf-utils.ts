@@ -58,8 +58,8 @@ export function validateLocalPath(pdfPath: string): void {
   }
 }
 
-/** Timeout for fetching PDFs from URLs (60 seconds). */
-const FETCH_TIMEOUT_MS = 60_000;
+/** Timeout for fetching PDFs from URLs (5 minutes). */
+const FETCH_TIMEOUT_MS = 300_000;
 
 /**
  * Fetch PDF content from a URL with timeout.
