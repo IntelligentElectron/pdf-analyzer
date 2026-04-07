@@ -68,6 +68,12 @@ const main = async (): Promise<void> => {
     return;
   }
 
+  // In HTTP mode (PORT set), skip TTY check and auto-update (cloud deployment)
+  if (process.env.PORT) {
+    await runServer();
+    return;
+  }
+
   // If running in a TTY (interactive terminal), show help instead of starting server
   if (process.stdin.isTTY) {
     console.log("This is an MCP server that communicates via stdio.");

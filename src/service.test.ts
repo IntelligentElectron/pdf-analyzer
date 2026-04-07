@@ -1,15 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { isGeminiFileUri, isUrl, validateLocalPath } from "./service.js";
+import { isGeminiFileUri, isUrl, validateLocalPath, classifySource } from "./service.js";
 import { AnalyzePdfInputSchema } from "./types.js";
 
 describe("isGeminiFileUri", () => {
   it("returns true for valid Gemini File API URIs", () => {
-    expect(
-      isGeminiFileUri("https://generativelanguage.googleapis.com/v1beta/files/abc123")
-    ).toBe(true);
-    expect(
-      isGeminiFileUri("https://generativelanguage.googleapis.com/v1/files/xyz789")
-    ).toBe(true);
+    expect(isGeminiFileUri("https://generativelanguage.googleapis.com/v1beta/files/abc123")).toBe(
+      true
+    );
+    expect(isGeminiFileUri("https://generativelanguage.googleapis.com/v1/files/xyz789")).toBe(true);
   });
 
   it("returns false for regular URLs", () => {
@@ -84,9 +82,7 @@ describe("validateLocalPath", () => {
   });
 
   it("accepts valid PDF files", () => {
-    expect(() =>
-      validateLocalPath(process.cwd() + "/test/fixtures/m3000a.pdf")
-    ).not.toThrow();
+    expect(() => validateLocalPath(process.cwd() + "/test/fixtures/m3000a.pdf")).not.toThrow();
   });
 });
 
@@ -129,5 +125,39 @@ describe("AnalyzePdfInputSchema", () => {
       queries: ["First question?", "Second question?"],
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("classifySource", () => {
+  it("converts gs:// URL to HTTPS storage URL", () => {
+    const result = classifySource("gs://my-bucket/uploads/doc.pdf");
+    expect(result).toEqual({
+      kind: "url",
+      url: "https://storage.googleapis.com/my-bucket/uploads/doc.pdf",
+    });
+  });
+
+  it("handles nested gs:// paths", () => {
+    const result = classifySource("gs://bucket/a/b/c.pdf");
+    expect(result).toEqual({
+      kind: "url",
+      url: "https://storage.googleapis.com/bucket/a/b/c.pdf",
+    });
+  });
+
+  it("classifies regular URLs as url kind", () => {
+    const result = classifySource("https://example.com/doc.pdf");
+    expect(result).toEqual({ kind: "url", url: "https://example.com/doc.pdf" });
+  });
+
+  it("classifies Gemini URIs as cachedUri kind", () => {
+    const uri = "https://generativelanguage.googleapis.com/v1beta/files/abc123";
+    const result = classifySource(uri);
+    expect(result).toEqual({ kind: "cachedUri", uri });
+  });
+
+  it("classifies local paths as path kind", () => {
+    const result = classifySource("/tmp/doc.pdf");
+    expect(result).toEqual({ kind: "path", path: "/tmp/doc.pdf" });
   });
 });

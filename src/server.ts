@@ -11,6 +11,9 @@ import { z } from "zod";
 import { VERSION } from "./version.js";
 import { analyzePdf } from "./service.js";
 import { resolveActiveProvider } from "./providers/registry.js";
+// Cloud-only modules loaded lazily to avoid pulling in heavy deps in stdio mode.
+// import { startHttpServer } from "./transports/http.js";
+// import { uploadToGcs } from "./storage.js";
 
 // =============================================================================
 // Server Instructions
@@ -105,10 +108,17 @@ const formatError = (
 // Server Setup
 // =============================================================================
 
+/** Tool description varies by transport mode. */
+const ANALYZE_PDF_DESCRIPTION_STDIO =
+  "Analyze a PDF document using AI. Provide an absolute file path, URL, cached file URI (from a previous response, Google only), or array of cached file URIs (from a previous chunked response, Google only) and a list of questions to ask about the PDF content. With the Google provider, returns a cached_uris array that can be reused for subsequent queries on the same document.";
+
+const ANALYZE_PDF_DESCRIPTION_HTTP =
+  "Analyze a PDF document using AI. Provide a URL, a gs:// URL returned by upload_pdf, cached file URI (from a previous response, Google only), or array of cached file URIs (from a previous chunked response, Google only) and a list of questions to ask about the PDF content. With the Google provider, returns a cached_uris array that can be reused for subsequent queries on the same document.";
+
 /**
  * Create and configure the MCP server.
  */
-export const createServer = (): McpServer => {
+export const createServer = (mode: "stdio" | "http" = "stdio"): McpServer => {
   const server = new McpServer(
     {
       name: "pdf-analyzer",
@@ -128,8 +138,7 @@ export const createServer = (): McpServer => {
   server.registerTool(
     "analyze_pdf",
     {
-      description:
-        "Analyze a PDF document using AI. Provide an absolute file path, URL, cached file URI (from a previous response, Google only), or array of cached file URIs (from a previous chunked response, Google only) and a list of questions to ask about the PDF content. With the Google provider, returns a cached_uris array that can be reused for subsequent queries on the same document.",
+      description: mode === "http" ? ANALYZE_PDF_DESCRIPTION_HTTP : ANALYZE_PDF_DESCRIPTION_STDIO,
       inputSchema: {
         pdf_source: z
           .union([z.string(), z.array(z.string().min(1)).min(1)])
@@ -144,7 +153,7 @@ export const createServer = (): McpServer => {
     },
     async ({ pdf_source, queries }) => {
       try {
-        const { provider, apiKey, modelId } = resolveActiveProvider();
+        const { provider, apiKey, modelId } = await resolveActiveProvider();
         const result = await analyzePdf(provider, apiKey, modelId, { pdf_source, queries });
         return formatResult(result);
       } catch (error) {
@@ -170,14 +179,50 @@ export const createServer = (): McpServer => {
     }
   );
 
+  // -------------------------------------------------------------------------
+  // Tool: upload_pdf (HTTP mode only)
+  // -------------------------------------------------------------------------
+  if (mode === "http") {
+    server.registerTool(
+      "upload_pdf",
+      {
+        description:
+          "Upload a PDF to cloud storage for analysis. Returns a gs:// URL to pass to analyze_pdf.",
+        inputSchema: {
+          pdf_data: z.string().describe("Base64-encoded PDF file contents"),
+          filename: z.string().optional().describe("Optional original filename"),
+        },
+      },
+      async ({ pdf_data, filename }) => {
+        try {
+          const bytes = Buffer.from(pdf_data, "base64");
+          const name = filename || `upload-${Date.now()}.pdf`;
+          const { uploadToGcs } = await import("./storage.js");
+          const url = await uploadToGcs(bytes, name);
+          return formatResult({ url, filename: name });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Unknown error occurred";
+          return formatError(message);
+        }
+      }
+    );
+  }
+
   return server;
 };
 
 /**
- * Run the MCP server with stdio transport.
+ * Run the MCP server.
+ * Uses HTTP transport when PORT env var is set, otherwise stdio.
  */
 export const runServer = async (): Promise<void> => {
-  const server = createServer();
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  const port = process.env.PORT;
+  if (port) {
+    const { startHttpServer } = await import("./transports/http.js");
+    startHttpServer(() => createServer("http"), parseInt(port, 10));
+  } else {
+    const server = createServer("stdio");
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+  }
 };

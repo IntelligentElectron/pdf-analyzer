@@ -275,7 +275,14 @@ async function processCachedUris(
 /**
  * Classify the pdf_source input into a PdfSource discriminated union.
  */
-function classifySource(source: string): PdfSource {
+export function classifySource(source: string): PdfSource {
+  if (source.startsWith("gs://")) {
+    const withoutPrefix = source.slice(5);
+    const slashIndex = withoutPrefix.indexOf("/");
+    const bucket = withoutPrefix.slice(0, slashIndex);
+    const objectPath = withoutPrefix.slice(slashIndex + 1);
+    return { kind: "url", url: `https://storage.googleapis.com/${bucket}/${objectPath}` };
+  }
   if (isGeminiFileUri(source)) {
     return { kind: "cachedUri", uri: source };
   }

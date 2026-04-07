@@ -16,3 +16,11 @@
 - [x] Update tests - all passing
 - [x] Cleanup: package.json, server instructions, CLAUDE.md
 - [x] Add ./providers export to package.json for external consumers
+- [x] Stage 1: Environment variable configuration (#32)
+- [x] Stage 2: Google Vertex AI provider (#29)
+- [x] Stage 3: Anthropic Vertex AI provider (#31)
+- [x] Stage 4: Streamable HTTP transport (#30)
+- [x] Stage 5: Upload PDF tool (#33)
+- [x] Stage 6: Dockerfile for Cloud Run deployment
+- [x] Stage 7: E2E tests for Cloud Run deployment
+- [x] Fix lazy imports for cloud-only packages (regression contract #3)

@@ -32,3 +32,6 @@ coverage/
 # Claude
 .claude/settings.local.json
 .mcp.json
+skills-lock.json
+.agents/
+.claude/skills/
