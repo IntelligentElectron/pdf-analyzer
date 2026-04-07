@@ -275,7 +275,28 @@ async function processCachedUris(
 /**
  * Classify the pdf_source input into a PdfSource discriminated union.
  */
-function classifySource(source: string): PdfSource {
+/**
+ * Download a PDF from a gs:// URI using the GCS client (ADC auth).
+ */
+async function downloadFromGcs(gcsUri: string): Promise<Uint8Array> {
+  const withoutPrefix = gcsUri.slice(5);
+  const slashIndex = withoutPrefix.indexOf("/");
+  const bucket = withoutPrefix.slice(0, slashIndex);
+  const objectPath = withoutPrefix.slice(slashIndex + 1);
+  const { Storage } = await import("@google-cloud/storage");
+  const storage = new Storage();
+  const [buffer] = await storage.bucket(bucket).file(objectPath).download();
+  return new Uint8Array(buffer);
+}
+
+/**
+ * Classify a PDF source string into a typed PdfSource union.
+ */
+export function classifySource(source: string): PdfSource {
+  if (source.startsWith("gs://")) {
+    // Marker kind: actual download happens in analyzePdf via downloadFromGcs
+    return { kind: "url", url: source };
+  }
   if (isGeminiFileUri(source)) {
     return { kind: "cachedUri", uri: source };
   }
@@ -309,7 +330,11 @@ export async function analyzePdf(
     return processCachedUris(provider, apiKey, modelId, pdf_source, queries);
   }
 
-  const source = classifySource(pdf_source);
+  // Download gs:// URIs via authenticated GCS client before classification
+  const source: PdfSource =
+    typeof pdf_source === "string" && pdf_source.startsWith("gs://")
+      ? { kind: "bytes", bytes: await downloadFromGcs(pdf_source) }
+      : classifySource(pdf_source);
 
   // Cached URI, direct path (Google only)
   if (source.kind === "cachedUri") {

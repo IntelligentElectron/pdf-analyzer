@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.2.0] - 2026-04-06
+
+### Added
+- Cloud Run deployment with Streamable HTTP transport (`POST /mcp`)
+- Direct REST endpoint (`POST /analyze`) for clients that don't speak MCP
+- Health check endpoint (`GET /health`)
+- Google Vertex AI provider for Cloud Run (uses ADC, no API keys needed)
+- Anthropic Vertex AI provider
+- Provider and model configuration via environment variables (`PDF_ANALYZER_PROVIDER`, `VERTEX_PROJECT`, `VERTEX_LOCATION`)
+- Authenticated GCS downloads for `gs://` URIs via `@google-cloud/storage`
+- Dockerfile for containerized deployments
+- Deployment scripts: gcloud CLI (`deploy/gcloud.sh`) and Terraform (`deploy/main.tf`)
+- Deployment documentation (`deploy/README.md`)
+- Architecture documentation (`docs/architecture.md`) covering stdio vs HTTP transport
+- Cloud Run E2E test suite (`test/test-e2e-cloud-run.ts`)
+- Plans: OAuth 2.1 authorization, rate limit handling
+
+### Changed
+- Cloud Run configured with 15-minute request timeout and 4 GiB memory for large PDFs
+- PDF fetch timeout increased from 60 seconds to 5 minutes for slow CDNs
+- Adaptive chunking works with inline bytes on Vertex AI (no Gemini File API)
+
+### Removed
+- `upload_pdf` tool (unnecessary: stdio reads local files, HTTP accepts URLs and `gs://` URIs)
+- `src/storage.ts` module (only used by `upload_pdf`)
+
 ## [1.0.1] - 2026-03-23
 
 ### Added

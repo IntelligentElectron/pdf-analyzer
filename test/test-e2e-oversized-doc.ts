@@ -1,6 +1,8 @@
+/// <reference types="node" />
+
 /**
  * End-to-end test for chunked PDF processing with the oversized fixture.
- * Requires GEMINI_API_KEY stored via `pdf-analyzer --set-key`.
+ * Requires a provider configured via `pdf-analyzer --setup` or env vars.
  *
  * 1. Analyzes the oversized PDF from a file path (triggers chunking).
  * 2. Re-analyzes using the cached cached_uris from step 1 (no re-upload).
@@ -8,21 +10,25 @@
  * Usage: npx tsx test/test-e2e-oversized-doc.ts
  */
 
-import { join } from "node:path";
-import { createGeminiClient, analyzePdf } from "../src/service.js";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { analyzePdf } from "../src/service.js";
+import { resolveActiveProvider } from "../src/providers/registry.js";
 
-const fixturePath = join(import.meta.dirname, "fixtures", "oversized-doc.pdf");
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const fixturePath = join(__dirname, "fixtures", "oversized-doc.pdf");
 
 async function main() {
-  const client = createGeminiClient();
+  const { provider, apiKey, modelId } = await resolveActiveProvider();
 
   // --- Step 1: Analyze from file path (triggers chunking) ---
 
   console.log("=== Step 1: Analyze from file path ===\n");
+  console.log(`Provider: ${provider.displayName}, Model: ${modelId}`);
   console.log(`PDF: ${fixturePath}\n`);
 
   const t1 = Date.now();
-  const result1 = await analyzePdf(client, {
+  const result1 = await analyzePdf(provider, apiKey, modelId, {
     pdf_source: fixturePath,
     queries: ["What is this document about?", "How many pages does it have?"],
   });
@@ -41,11 +47,16 @@ async function main() {
 
   // --- Step 2: Re-analyze using cached cached_uris ---
 
+  if (result1.cached_uris.length === 0) {
+    console.log("=== Step 2: Skipped (no cached URIs, provider does not support caching) ===\n");
+    return;
+  }
+
   console.log("=== Step 2: Re-analyze using cached cached_uris ===\n");
   console.log(`Cached URIs: ${result1.cached_uris.length}\n`);
 
   const t2 = Date.now();
-  const result2 = await analyzePdf(client, {
+  const result2 = await analyzePdf(provider, apiKey, modelId, {
     pdf_source: result1.cached_uris,
     queries: [
       "Compare the power consumption of all radio TX modes at different dBm levels. Which mode is most efficient in terms of mA per dBm?",
