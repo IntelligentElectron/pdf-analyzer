@@ -3,8 +3,8 @@ import { vertexProvider } from "./google-vertex.js";
 import { isGoogleTokenLimitError } from "./google-shared.js";
 
 describe("vertexProvider", () => {
-  it('has id "google" for cached URI routing', () => {
-    expect(vertexProvider.id).toBe("google");
+  it('has id "google-vertex" matching registry key', () => {
+    expect(vertexProvider.id).toBe("google-vertex");
   });
 
   it("has 2 models", () => {

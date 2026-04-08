@@ -66,15 +66,16 @@ function isTokenLimitError(error: unknown): boolean {
 }
 
 export const anthropicVertexProvider: ProviderConfig = {
-  id: "anthropic",
+  id: "anthropic-vertex",
   displayName: "Anthropic via Vertex AI",
   models: MODELS,
   defaultModel: DEFAULT_MODEL,
   apiKeyUrl: "",
-  createModel: (_apiKey: string, modelId: string) => {
+  createModel: (apiKey: string, modelId: string) => {
     const client = createVertexAnthropic({
       project: getProject(),
       location: getLocation(),
+      ...(apiKey ? { googleAuthOptions: { keyFile: apiKey } } : {}),
     });
     return client(modelId);
   },

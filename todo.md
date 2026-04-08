@@ -24,3 +24,10 @@
 - [x] Stage 6: Dockerfile for Cloud Run deployment
 - [x] Stage 7: E2E tests for Cloud Run deployment
 - [x] Fix lazy imports for cloud-only packages (regression contract #3)
+- [x] Add Vertex AI service account JSON key auth to --setup flow
+- [x] Add Vertex credential slots to keychain (project, location, key file)
+- [x] Fix Vertex provider IDs (google -> google-vertex, anthropic -> anthropic-vertex)
+- [x] Add googleAuthOptions.keyFile support to Vertex providers
+- [x] Add getSetupProviderList() and Vertex-aware resolution to registry
+- [x] Add Vertex-aware setup flow to CLI commands
+- [x] Update tests for Vertex setup changes

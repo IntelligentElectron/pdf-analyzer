@@ -3,8 +3,8 @@ import { anthropicVertexProvider } from "./anthropic-vertex.js";
 import { anthropicProvider } from "./anthropic.js";
 
 describe("anthropicVertexProvider", () => {
-  it('has id "anthropic" for provider-specific behavior', () => {
-    expect(anthropicVertexProvider.id).toBe("anthropic");
+  it('has id "anthropic-vertex" matching registry key', () => {
+    expect(anthropicVertexProvider.id).toBe("anthropic-vertex");
   });
 
   it("has same models as direct anthropic provider", () => {
