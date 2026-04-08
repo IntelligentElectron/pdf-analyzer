@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Auto-detection of `GOOGLE_APPLICATION_CREDENTIALS` environment variable during setup
 - Keychain storage for Vertex credentials (project, location, key file path)
 
+### Fixed
+- `/analyze` endpoint now logs errors to stderr before responding (#37)
+
 ### Changed
 - Fixed Vertex provider IDs (`google-vertex`, `anthropic-vertex`) to match registry keys
 - Test fixtures replaced with smaller, cheaper PDFs (1-pager.pdf, attention-is-all-you-need.pdf)

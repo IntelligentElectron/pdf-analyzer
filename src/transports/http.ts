@@ -46,6 +46,7 @@ async function handleAnalyze(req: IncomingMessage, res: ServerResponse): Promise
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(result));
   } catch (error) {
+    console.error("[/analyze] Error processing PDF:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     res.writeHead(500, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: message }));
