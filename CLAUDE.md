@@ -81,6 +81,10 @@ Before committing:
 npm run type-check && npm run lint && npm test
 ```
 
+## Testing with PDFs
+
+Always use `test/fixtures/1-pager.pdf` for MCP tool testing. It is small and cheap on LLM API calls. Never use `test/fixtures/oversized-doc.pdf` or other large PDFs unless the user gives explicit approval.
+
 ## Release Process
 
 Branch protection requires releases to go through a PR:
