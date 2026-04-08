@@ -222,6 +222,7 @@ async function processChunkQueue(
       if (!provider.isTokenLimitError(error)) throw error;
 
       // Token limit hit, split this chunk and retry
+      console.warn(`[chunker] Token limit exceeded (${chunk.pageCount} pages), splitting in half`);
       const [firstHalf, secondHalf] = await splitPdfInHalf(chunk);
       queue.unshift(firstHalf, secondHalf);
     }
@@ -345,6 +346,9 @@ export async function analyzePdf(
     return await analyzePdfDirect(provider, apiKey, modelId, source, queries);
   } catch (error) {
     if (!provider.isTokenLimitError(error)) throw error;
+    console.warn(
+      "[analyzePdf] Token limit exceeded for full PDF, falling back to chunked processing"
+    );
   }
 
   // Token limit exceeded, read bytes, split into chunks, and process via work queue

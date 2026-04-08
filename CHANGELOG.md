@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.2.2] - 2026-04-08
+
+### Added
+- Vertex AI service account JSON key authentication in `--setup` flow
+- Google Vertex AI and Anthropic via Vertex AI as first-class setup options
+- Auto-detection of `GOOGLE_APPLICATION_CREDENTIALS` environment variable during setup
+- Keychain storage for Vertex credentials (project, location, key file path)
+
+### Fixed
+- `/analyze` endpoint now logs errors to stderr before responding (#37)
+
+### Changed
+- Fixed Vertex provider IDs (`google-vertex`, `anthropic-vertex`) to match registry keys
+- Test fixtures replaced with smaller, cheaper PDFs (1-pager.pdf, attention-is-all-you-need.pdf)
+- Test URL documents updated from IC datasheets to CS/ML papers, sorted by page count
+
 ## [1.2.1] - 2026-04-06
 
 ### Changed

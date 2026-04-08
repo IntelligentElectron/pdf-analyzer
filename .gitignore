@@ -40,3 +40,5 @@ deploy/terraform.tfstate*
 .claude/settings.local.json
 .mcp.json
 skills-lock.json
+
+.private/

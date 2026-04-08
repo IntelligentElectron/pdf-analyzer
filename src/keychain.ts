@@ -219,6 +219,9 @@ export function deleteStoredValue(account: string, service: string = DEFAULT_SER
 const PROVIDER_ACCOUNT = "PROVIDER";
 const API_KEY_ACCOUNT = "API_KEY";
 const MODEL_ACCOUNT = "MODEL";
+const VERTEX_PROJECT_ACCOUNT = "VERTEX_PROJECT";
+const VERTEX_LOCATION_ACCOUNT = "VERTEX_LOCATION";
+const VERTEX_KEY_FILE_ACCOUNT = "VERTEX_KEY_FILE";
 
 /** Get the active provider ID. Returns null if not set. */
 export function getActiveProvider(): string | null {
@@ -250,9 +253,49 @@ export function setModel(modelId: string): void {
   setStoredValue(MODEL_ACCOUNT, modelId);
 }
 
-/** Delete all stored credentials (provider + API key + model). Best-effort. */
+/** Get the stored Vertex AI project ID. Returns null if not set. */
+export function getVertexProject(): string | null {
+  return getStoredValue(VERTEX_PROJECT_ACCOUNT);
+}
+
+/** Store the Vertex AI project ID. */
+export function setVertexProject(value: string): void {
+  setStoredValue(VERTEX_PROJECT_ACCOUNT, value);
+}
+
+/** Get the stored Vertex AI location. Returns null if not set. */
+export function getVertexLocation(): string | null {
+  return getStoredValue(VERTEX_LOCATION_ACCOUNT);
+}
+
+/** Store the Vertex AI location. */
+export function setVertexLocation(value: string): void {
+  setStoredValue(VERTEX_LOCATION_ACCOUNT, value);
+}
+
+/** Get the stored Vertex AI service account key file path. Returns null if not set. */
+export function getVertexKeyFile(): string | null {
+  return getStoredValue(VERTEX_KEY_FILE_ACCOUNT);
+}
+
+/** Store the Vertex AI service account key file path. */
+export function setVertexKeyFile(value: string): void {
+  setStoredValue(VERTEX_KEY_FILE_ACCOUNT, value);
+}
+
+/** Delete Vertex-specific credentials (project, location, key file). Best-effort. */
+export function deleteVertexCredentials(): void {
+  deleteStoredValue(VERTEX_PROJECT_ACCOUNT);
+  deleteStoredValue(VERTEX_LOCATION_ACCOUNT);
+  deleteStoredValue(VERTEX_KEY_FILE_ACCOUNT);
+}
+
+/** Delete all stored credentials (provider + API key + model + Vertex). Best-effort. */
 export function deleteAllCredentials(): void {
   deleteStoredValue(PROVIDER_ACCOUNT);
   deleteStoredValue(API_KEY_ACCOUNT);
   deleteStoredValue(MODEL_ACCOUNT);
+  deleteStoredValue(VERTEX_PROJECT_ACCOUNT);
+  deleteStoredValue(VERTEX_LOCATION_ACCOUNT);
+  deleteStoredValue(VERTEX_KEY_FILE_ACCOUNT);
 }

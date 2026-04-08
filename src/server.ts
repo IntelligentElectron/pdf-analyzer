@@ -156,6 +156,7 @@ export const createServer = (mode: "stdio" | "http" = "stdio"): McpServer => {
         const result = await analyzePdf(provider, apiKey, modelId, { pdf_source, queries });
         return formatResult(result);
       } catch (error) {
+        console.error("[analyze_pdf] Tool error:", error);
         const message = error instanceof Error ? error.message : "Unknown error occurred";
 
         if (message.includes("No provider configured") || message.includes("API key not found")) {

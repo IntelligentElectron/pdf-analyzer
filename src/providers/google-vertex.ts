@@ -50,15 +50,16 @@ async function preparePdf(source: PdfSource): Promise<PreparedPdf> {
 }
 
 export const vertexProvider: ProviderConfig = {
-  id: "google",
+  id: "google-vertex",
   displayName: "Google Vertex AI",
   models: GOOGLE_MODELS,
   defaultModel: GOOGLE_DEFAULT_MODEL,
   apiKeyUrl: "",
-  createModel: (_apiKey: string, modelId: string) => {
+  createModel: (apiKey: string, modelId: string) => {
     const vertex = createVertex({
       project: getProject(),
       location: getLocation(),
+      ...(apiKey ? { googleAuthOptions: { keyFile: apiKey } } : {}),
     });
     return vertex(modelId);
   },
