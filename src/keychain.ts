@@ -283,6 +283,13 @@ export function setVertexKeyFile(value: string): void {
   setStoredValue(VERTEX_KEY_FILE_ACCOUNT, value);
 }
 
+/** Delete Vertex-specific credentials (project, location, key file). Best-effort. */
+export function deleteVertexCredentials(): void {
+  deleteStoredValue(VERTEX_PROJECT_ACCOUNT);
+  deleteStoredValue(VERTEX_LOCATION_ACCOUNT);
+  deleteStoredValue(VERTEX_KEY_FILE_ACCOUNT);
+}
+
 /** Delete all stored credentials (provider + API key + model + Vertex). Best-effort. */
 export function deleteAllCredentials(): void {
   deleteStoredValue(PROVIDER_ACCOUNT);

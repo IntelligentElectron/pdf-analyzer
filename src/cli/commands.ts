@@ -18,6 +18,7 @@ import {
   setModel,
   deleteAllCredentials,
   deleteStoredValue,
+  deleteVertexCredentials,
   setVertexProject,
   setVertexLocation,
   setVertexKeyFile,
@@ -103,15 +104,6 @@ function resolveKeyFilePath(p: string): string {
  */
 function isVertexProvider(id: string): boolean {
   return id.includes("-vertex");
-}
-
-/**
- * Clear stale Vertex credential slots (when switching to a non-Vertex provider).
- */
-function clearVertexCredentials(): void {
-  deleteStoredValue("VERTEX_PROJECT");
-  deleteStoredValue("VERTEX_LOCATION");
-  deleteStoredValue("VERTEX_KEY_FILE");
 }
 
 /**
@@ -244,10 +236,8 @@ export const handleSetupCommand = async (): Promise<void> => {
       setVertexKeyFile(resolvedPath);
       setVertexProject(project);
       setVertexLocation(location);
-      // Clear stale API key from a previous non-Vertex setup
       deleteStoredValue("API_KEY");
     } else {
-      // API key providers: prompt for API key
       clack.note(
         `Model: ${selectedModel.displayName} (${modelId})\nGet your API key from: ${selected.apiKeyUrl}`,
         selected.displayName
@@ -264,8 +254,7 @@ export const handleSetupCommand = async (): Promise<void> => {
       setActiveProvider(selected.id);
       setModel(modelId);
       setApiKey(key);
-      // Clear stale Vertex credentials from a previous Vertex setup
-      clearVertexCredentials();
+      deleteVertexCredentials();
     }
 
     clack.outro(`${selected.displayName} (${selectedModel.displayName}) configured successfully.`);
