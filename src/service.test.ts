@@ -82,7 +82,7 @@ describe("validateLocalPath", () => {
   });
 
   it("accepts valid PDF files", () => {
-    expect(() => validateLocalPath(process.cwd() + "/test/fixtures/m3000a.pdf")).not.toThrow();
+    expect(() => validateLocalPath(process.cwd() + "/test/fixtures/1-pager.pdf")).not.toThrow();
   });
 });
 

@@ -1,79 +1,76 @@
-# Test URLs - IC Datasheets
+# Test URLs - PDF Documents
 
 URLs tested successfully with the PDF Analyzer MCP Server.
+Sorted by page count (smallest first).
 
-## Microcontrollers
+## Small (under 20 pages)
 
-1. STMicroelectronics STM32F103
-   <https://www.st.com/resource/en/datasheet/stm32f103c8.pdf>
+1. Bitcoin Whitepaper (9 pages, 0.17 MB)
+   <https://bitcoin.org/bitcoin.pdf>
 
-2. Microchip PIC16F877A
-   <https://ww1.microchip.com/downloads/en/devicedoc/39582b.pdf>
+2. ImageNet / AlexNet (9 pages, 1.35 MB)
+   <https://papers.nips.cc/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf>
 
-3. NXP LPC1768
-   <https://datasheet.octopart.com/LPC1768FBD100,551-NXP-datasheet-8326490.pdf>
+3. MapReduce - Google (13 pages, 0.18 MB)
+   <https://static.googleusercontent.com/media/research.google.com/en//archive/mapreduce-osdi04.pdf>
 
-4. Renesas RA4M1
-   <https://docs.arduino.cc/resources/datasheets/ra4m1-datasheet.pdf>
+4. Bigtable - Google (14 pages, 0.21 MB)
+   <https://static.googleusercontent.com/media/research.google.com/en//archive/bigtable-osdi06.pdf>
 
-## Analog ICs
+5. Attention Is All You Need (15 pages, 2.11 MB)
+   <https://arxiv.org/pdf/1706.03762>
 
-5. Texas Instruments LM7805
-   <https://www.ti.com/lit/ds/symlink/lm340.pdf>
+6. Google File System (15 pages, 0.26 MB)
+   <https://static.googleusercontent.com/media/research.google.com/en//archive/gfs-sosp2003.pdf>
 
-6. Analog Devices AD8221
-   <https://www.analog.com/media/en/technical-documentation/data-sheets/AD8221.pdf>
+7. BERT (16 pages, 0.73 MB)
+   <https://arxiv.org/pdf/1810.04805>
 
-7. ON Semiconductor LM358
-   <https://www.onsemi.com/download/data-sheet/pdf/lm358-d.pdf>
+8. Dynamo - Amazon (16 pages, 0.85 MB)
+   <https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf>
 
-8. Texas Instruments MAX232
-   <https://www.ti.com/lit/ds/symlink/max232.pdf>
+9. TCP Congestion Control - RFC 5681 (18 pages, 0.03 MB)
+   <https://www.rfc-editor.org/rfc/pdfrfc/rfc5681.txt.pdf>
 
-## Power Management
+10. Raft Consensus Algorithm (18 pages, 0.54 MB)
+    <https://raft.github.io/raft.pdf>
 
-9. Infineon IRS2184
-   <https://www.farnell.com/datasheets/57932.pdf>
+## Medium (20-50 pages)
 
-10. Monolithic Power Systems MP1584
-    <https://content.instructables.com/FT8/0X4N/J9SVVWSX/FT80X4NJ9SVVWSX.pdf>
+11. GPT-2 (24 pages, 0.55 MB)
+    <https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf>
 
-11. Diodes Inc AP2112
-    <https://www.diodes.com/assets/Datasheets/AP2112.pdf>
+12. Borg - Google / Kubernetes (24 pages, 0.36 MB)
+    <https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/44843.pdf>
 
-## Memory
+13. Diffusion Models / DDPM (25 pages, 9.79 MB)
+    <https://arxiv.org/pdf/2006.11239>
 
-12. Micron MT48LC16M16A2 SDRAM
-    <https://datasheet.octopart.com/MT48LC16M16A2TG-7E-IT:D-Micron-datasheet-7627877.pdf>
+14. LoRA (26 pages, 1.53 MB)
+    <https://arxiv.org/pdf/2106.09685>
 
-13. Winbond W25Q128JV SPI Flash
-    <https://www.winbond.com/resource-files/w25q128jv%20revf%2003272018%20plus.pdf>
+15. ReAct - Reasoning + Acting (33 pages, 0.60 MB)
+    <https://arxiv.org/pdf/2210.03629>
 
-## RF/Wireless
+16. Constitutional AI - Anthropic (34 pages, 1.99 MB)
+    <https://arxiv.org/pdf/2212.08073>
 
-14. Nordic Semiconductor nRF52832
-    <https://www.mouser.com/datasheet/2/297/nRF52832_PS_v1_8-2942485.pdf>
+17. FlashAttention (34 pages, 2.50 MB)
+    <https://arxiv.org/pdf/2205.14135>
 
-15. Silicon Labs CP2102
-    <https://www.silabs.com/documents/public/data-sheets/CP2102-9.pdf>
+18. Let's Encrypt / ACME (45 pages, 0.29 MB)
+    <https://arxiv.org/pdf/1503.02579>
 
-## Interface ICs
+## Large (50+ pages)
 
-16. FTDI FT232RL
-    <https://ftdichip.com/wp-content/uploads/2020/08/DS_FT232R.pdf>
+19. NIST Cybersecurity Framework (55 pages, 1.01 MB)
+    <https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.04162018.pdf>
 
-17. Broadcom HCPL-0611
-    <https://datasheet.octopart.com/HCPL-0611-Avago-datasheet-7617305.pdf>
+20. HTTP/2 - RFC 7540 (96 pages, 0.13 MB)
+    <https://www.rfc-editor.org/rfc/pdfrfc/rfc7540.txt.pdf>
 
-## Sensors
+21. TLS 1.3 - RFC 8446 (160 pages, 0.21 MB)
+    <https://www.rfc-editor.org/rfc/pdfrfc/rfc8446.txt.pdf>
 
-18. Bosch Sensortec BMP280
-    <https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmp280-ds001.pdf>
-
-19. TDK/InvenSense MPU-6050
-    <https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Datasheet1.pdf>
-
-## Logic ICs
-
-20. Nexperia 74HC595
-    <https://assets.nexperia.com/documents/data-sheet/74HC_HCT595.pdf>
+22. HTTP/1.1 - RFC 2616 (176 pages, 0.24 MB)
+    <https://www.rfc-editor.org/rfc/pdfrfc/rfc2616.txt.pdf>
