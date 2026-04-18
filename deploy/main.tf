@@ -11,6 +11,10 @@
 #   - gcloud CLI authenticated (for building the container image)
 #   - Container image must be built before applying:
 #       gcloud builds submit --tag <region>-docker.pkg.dev/<project>/pdf-analyzer/pdf-analyzer:latest ..
+#   - For direct-API providers (google, anthropic, openai): a Secret Manager
+#     secret containing the API key must already exist. Create once with:
+#       echo -n 'YOUR_KEY' | gcloud secrets create <name> \
+#         --project=<project> --data-file=-
 
 terraform {
   required_version = ">= 1.5"
@@ -32,25 +36,47 @@ variable "project_id" {
 }
 
 variable "region" {
-  description = "GCP region for Cloud Run, Artifact Registry, and GCS"
+  description = "GCP region for Cloud Run, Artifact Registry, and Cloud Build"
   type        = string
   default     = "us-central1"
 }
 
+variable "provider_id" {
+  description = "PDF_ANALYZER_PROVIDER. One of: google, google-vertex, anthropic, anthropic-vertex, openai."
+  type        = string
+
+  validation {
+    condition     = contains(["google", "google-vertex", "anthropic", "anthropic-vertex", "openai"], var.provider_id)
+    error_message = "provider_id must be one of: google, google-vertex, anthropic, anthropic-vertex, openai."
+  }
+}
+
+variable "model_id" {
+  description = "Optional: pin a specific model. Leave empty to use the provider's default."
+  type        = string
+  default     = ""
+}
+
 variable "vertex_location" {
-  description = "Vertex AI endpoint location. Use 'global' for preview models."
+  description = "Vertex AI endpoint location (used when provider_id is a *-vertex variant)."
   type        = string
   default     = "global"
 }
 
+variable "api_key_secret_name" {
+  description = "Secret Manager secret name holding the provider API key (required when provider_id is google, anthropic, or openai; ignored otherwise)."
+  type        = string
+  default     = ""
+}
+
 variable "ar_repository" {
-  description = "Artifact Registry repository name. Set to use an existing repo."
+  description = "Artifact Registry repository name."
   type        = string
   default     = "pdf-analyzer"
 }
 
 variable "image" {
-  description = "Container image URI. Build it first with gcloud builds submit. Leave empty to auto-generate from region/project/repository."
+  description = "Container image URI. Build it first with gcloud builds submit. Leave empty to auto-generate."
   type        = string
   default     = ""
 }
@@ -62,11 +88,26 @@ variable "service_account_email" {
 }
 
 locals {
-  service_name   = "pdf-analyzer"
-  sa_name        = "pdf-analyzer"
-  image          = var.image != "" ? var.image : "${var.region}-docker.pkg.dev/${var.project_id}/${var.ar_repository}/${local.service_name}:latest"
-  create_sa      = var.service_account_email == ""
-  sa_email       = local.create_sa ? google_service_account.pdf_analyzer[0].email : var.service_account_email
+  service_name = "pdf-analyzer"
+  sa_name      = "pdf-analyzer"
+  image        = var.image != "" ? var.image : "${var.region}-docker.pkg.dev/${var.project_id}/${var.ar_repository}/${local.service_name}:latest"
+  create_sa    = var.service_account_email == ""
+  sa_email     = local.create_sa ? google_service_account.pdf_analyzer[0].email : var.service_account_email
+
+  uses_vertex = contains(["google-vertex", "anthropic-vertex"], var.provider_id)
+  uses_apikey = !local.uses_vertex
+
+  # Base env vars always set on the service.
+  base_env = concat(
+    [{ name = "PDF_ANALYZER_PROVIDER", value = var.provider_id }],
+    local.uses_vertex ? [
+      { name = "VERTEX_PROJECT", value = var.project_id },
+      { name = "VERTEX_LOCATION", value = var.vertex_location },
+    ] : [],
+    var.model_id != "" ? [
+      { name = "PDF_ANALYZER_MODEL", value = var.model_id },
+    ] : [],
+  )
 }
 
 provider "google" {
@@ -75,17 +116,30 @@ provider "google" {
 }
 
 # --------------------------------------------------------------------------
+# Config validation: api-key providers must supply a secret name.
+# --------------------------------------------------------------------------
+
+check "api_key_secret_provided" {
+  assert {
+    condition     = !local.uses_apikey || var.api_key_secret_name != ""
+    error_message = "api_key_secret_name is required when provider_id is google, anthropic, or openai."
+  }
+}
+
+# --------------------------------------------------------------------------
 # APIs
 # --------------------------------------------------------------------------
 
 resource "google_project_service" "apis" {
-  for_each = toset([
-    "aiplatform.googleapis.com",
-    "artifactregistry.googleapis.com",
-    "cloudbuild.googleapis.com",
-    "run.googleapis.com",
-    "storage.googleapis.com",
-  ])
+  for_each = toset(concat(
+    [
+      "artifactregistry.googleapis.com",
+      "cloudbuild.googleapis.com",
+      "run.googleapis.com",
+      "storage.googleapis.com",
+    ],
+    local.uses_vertex ? ["aiplatform.googleapis.com"] : ["secretmanager.googleapis.com"],
+  ))
   service            = each.value
   disable_on_destroy = false
 }
@@ -113,18 +167,29 @@ resource "google_service_account" "pdf_analyzer" {
   depends_on   = [google_project_service.apis]
 }
 
-resource "google_project_iam_member" "vertex_ai_user" {
-  count   = local.create_sa ? 1 : 0
-  project = var.project_id
-  role    = "roles/aiplatform.user"
-  member  = "serviceAccount:${local.sa_email}"
-}
-
+# All providers read PDFs from GCS (gs:// URIs).
 resource "google_project_iam_member" "storage_object_viewer" {
   count   = local.create_sa ? 1 : 0
   project = var.project_id
   role    = "roles/storage.objectViewer"
   member  = "serviceAccount:${local.sa_email}"
+}
+
+# Vertex providers need aiplatform.user.
+resource "google_project_iam_member" "vertex_ai_user" {
+  count   = local.create_sa && local.uses_vertex ? 1 : 0
+  project = var.project_id
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${local.sa_email}"
+}
+
+# API-key providers need read access to the specific Secret Manager secret.
+resource "google_secret_manager_secret_iam_member" "api_key_accessor" {
+  count     = local.uses_apikey && var.api_key_secret_name != "" ? 1 : 0
+  project   = var.project_id
+  secret_id = var.api_key_secret_name
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${local.sa_email}"
 }
 
 # --------------------------------------------------------------------------
@@ -148,18 +213,28 @@ resource "google_cloud_run_v2_service" "pdf_analyzer" {
 
       image = local.image
 
-      env {
-        name  = "PDF_ANALYZER_PROVIDER"
-        value = "google-vertex"
+      dynamic "env" {
+        for_each = local.base_env
+        content {
+          name  = env.value.name
+          value = env.value.value
+        }
       }
-      env {
-        name  = "VERTEX_PROJECT"
-        value = var.project_id
+
+      # API key for direct-API providers, sourced from Secret Manager at runtime.
+      dynamic "env" {
+        for_each = local.uses_apikey && var.api_key_secret_name != "" ? [1] : []
+        content {
+          name = "PDF_ANALYZER_API_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = var.api_key_secret_name
+              version = "latest"
+            }
+          }
+        }
       }
-      env {
-        name  = "VERTEX_LOCATION"
-        value = var.vertex_location
-      }
+
       ports {
         container_port = 8080
       }
@@ -171,14 +246,11 @@ resource "google_cloud_run_v2_service" "pdf_analyzer" {
   ]
 }
 
-# Allow unauthenticated access (public MCP endpoint)
-resource "google_cloud_run_v2_service_iam_member" "public" {
-  project  = var.project_id
-  location = var.region
-  name     = google_cloud_run_v2_service.pdf_analyzer.name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
+# NOTE: This configuration does NOT grant public (allUsers) access to the
+# service. Callers must authenticate with a Google identity token. For local
+# development, use `gcloud run services proxy` to forward authenticated
+# requests to http://localhost:<port>. Add your own run.invoker IAM bindings
+# here if you have specific identities that should invoke the service.
 
 # --------------------------------------------------------------------------
 # Outputs
@@ -190,7 +262,7 @@ output "service_url" {
 }
 
 output "mcp_endpoint" {
-  description = "MCP endpoint URL for client config"
+  description = "MCP endpoint URL (requires authenticated invocation)"
   value       = "${google_cloud_run_v2_service.pdf_analyzer.uri}/mcp"
 }
 

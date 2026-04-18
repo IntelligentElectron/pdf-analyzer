@@ -85,20 +85,25 @@ npm run type-check && npm run lint && npm test
 
 Always use `test/fixtures/1-pager.pdf` for MCP tool testing. It is small and cheap on LLM API calls. Never use `test/fixtures/oversized-doc.pdf` or other large PDFs unless the user gives explicit approval.
 
-## Running the remote MCP (Cloud Run)
+## Deploying to Cloud Run
 
-The Cloud Run service is deployed `--no-allow-unauthenticated` (private). The `pdf-analyzer-http` MCP in `.mcp.json` points at `http://localhost:8080/mcp`, which only responds when the gcloud Cloud Run proxy is running locally. The proxy forwards requests to the private Cloud Run service, injecting a fresh Google identity token on each call.
+The deploy scripts (`deploy/gcloud.sh` and `deploy/main.tf`) support every provider and both auth modes; which one runs is decided by `PDF_ANALYZER_PROVIDER` in `deploy/env` (gcloud) or `provider_id` in `terraform.tfvars`:
 
-Start it in a separate terminal before using the MCP:
+- `google-vertex`, `anthropic-vertex` → ADC via attached service account, no API key required
+- `google`, `anthropic`, `openai` → API key pulled from a Secret Manager secret named in `API_KEY_SECRET_NAME` / `api_key_secret_name`
+
+See `deploy/README.md` for the full matrix, required IAM roles per provider, and the one-time `gcloud secrets create` command for the direct-API providers. The service is always deployed `--no-allow-unauthenticated` (private).
+
+### Running the remote MCP locally
+
+Because the service requires authenticated invocation, MCP clients connect through a local proxy that mints fresh identity tokens per request:
 
 ```bash
-gcloud run services proxy pdf-analyzer \
-  --project=westworld-462318 \
-  --region=us-central1 \
-  --port=8080
+gcloud run services proxy <service-name> \
+  --project=<project-id> --region=<region> --port=8080
 ```
 
-Leave it running. When you stop the proxy, the MCP will fail to connect until you start it again. There are no secrets in `.mcp.json` because auth is handled per-request by the proxy against your ADC.
+Point `.mcp.json`'s HTTP MCP entry at `http://localhost:8080/mcp`. When the proxy stops, the MCP disconnects until you start it again. No secrets live in `.mcp.json` — auth is handled per-request by the proxy against your ADC.
 
 ## Release Process
 
