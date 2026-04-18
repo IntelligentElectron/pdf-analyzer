@@ -1,0 +1,9 @@
+# Allowlist: only upload what the Dockerfile consumes.
+# Everything else (test fixtures, binaries, terraform, docs, .git, etc.)
+# is excluded to keep the Cloud Build context small.
+*
+!Dockerfile
+!package.json
+!tsconfig.json
+!src/
+!src/**

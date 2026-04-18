@@ -42,3 +42,6 @@ deploy/terraform.tfstate*
 skills-lock.json
 
 .private/
+
+# Playwright MCP artifact directory
+.playwright-mcp/
