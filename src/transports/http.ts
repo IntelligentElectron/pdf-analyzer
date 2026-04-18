@@ -2,9 +2,9 @@
  * Streamable HTTP transport for cloud deployments.
  *
  * Creates a stateless HTTP server that handles:
- * - POST /mcp       MCP protocol (Streamable HTTP)
- * - POST /analyze   Direct REST endpoint (no MCP overhead)
- * - GET  /health    Health check
+ * - POST/GET/DELETE /mcp  MCP protocol (Streamable HTTP; SDK decides per-method behavior)
+ * - POST /analyze         Direct REST endpoint (no MCP overhead)
+ * - GET  /health          Health check
  */
 
 import { createServer as createHttpServer } from "node:http";
@@ -58,7 +58,7 @@ async function handleAnalyze(req: IncomingMessage, res: ServerResponse): Promise
  */
 export function startHttpServer(createMcpServer: () => McpServer, port: number): void {
   const httpServer = createHttpServer(async (req, res) => {
-    if (req.method === "POST" && req.url === "/mcp") {
+    if (req.url === "/mcp") {
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
       });

@@ -98,11 +98,11 @@ gcloud run deploy "${SERVICE_NAME}" \
   --project="${PROJECT_ID}" \
   --platform managed \
   --region "${REGION}" \
-  --set-env-vars "PDF_ANALYZER_PROVIDER=google-vertex,VERTEX_PROJECT=${PROJECT_ID},VERTEX_LOCATION=${VERTEX_LOCATION}" \
+  --set-env-vars "PDF_ANALYZER_PROVIDER=anthropic-vertex,VERTEX_PROJECT=${PROJECT_ID},VERTEX_LOCATION=${VERTEX_LOCATION}" \
   --service-account "${SA_EMAIL}" \
   --timeout=900 \
   --memory=4Gi \
-  --allow-unauthenticated \
+  --no-allow-unauthenticated \
   --quiet
 
 # ---- Verify ----
@@ -111,7 +111,12 @@ SERVICE_URL=$(gcloud run services describe "${SERVICE_NAME}" \
 
 echo ""
 echo "==> Verifying health..."
-curl -sf "${SERVICE_URL}/health" && echo " OK"
+ID_TOKEN="$(gcloud auth print-identity-token 2>/dev/null || true)"
+if [[ -n "${ID_TOKEN}" ]]; then
+  curl -sf -H "Authorization: Bearer ${ID_TOKEN}" "${SERVICE_URL}/health" && echo " OK"
+else
+  echo " (skipped: could not mint identity token; run \`gcloud auth login\` first)"
+fi
 
 echo ""
 echo "==================================="
