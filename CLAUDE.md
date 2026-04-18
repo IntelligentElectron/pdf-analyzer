@@ -23,7 +23,7 @@ git push -u origin <branch-name>  # Push and create PR
 Models per provider (do not change without discussion). Users choose during `--setup`:
 
 - **Google Gemini**: `gemini-3-flash-preview` (fast) / `gemini-3.1-pro-preview` (flagship)
-- **Anthropic Claude**: `claude-sonnet-4-6` (fast) / `claude-opus-4-6` (flagship)
+- **Anthropic Claude**: `claude-sonnet-4-6` (fast) / `claude-opus-4-7` (flagship) / `claude-opus-4-6` (previous flagship, still selectable)
 - **OpenAI**: `gpt-5.4-mini` (fast) / `gpt-5.4` (flagship)
 
 Thinking/reasoning is set to minimum for all models (document analysis doesn't benefit from extended thinking).
@@ -84,6 +84,21 @@ npm run type-check && npm run lint && npm test
 ## Testing with PDFs
 
 Always use `test/fixtures/1-pager.pdf` for MCP tool testing. It is small and cheap on LLM API calls. Never use `test/fixtures/oversized-doc.pdf` or other large PDFs unless the user gives explicit approval.
+
+## Running the remote MCP (Cloud Run)
+
+The Cloud Run service is deployed `--no-allow-unauthenticated` (private). The `pdf-analyzer-http` MCP in `.mcp.json` points at `http://localhost:8080/mcp`, which only responds when the gcloud Cloud Run proxy is running locally. The proxy forwards requests to the private Cloud Run service, injecting a fresh Google identity token on each call.
+
+Start it in a separate terminal before using the MCP:
+
+```bash
+gcloud run services proxy pdf-analyzer \
+  --project=westworld-462318 \
+  --region=us-central1 \
+  --port=8080
+```
+
+Leave it running. When you stop the proxy, the MCP will fail to connect until you start it again. There are no secrets in `.mcp.json` because auth is handled per-request by the proxy against your ADC.
 
 ## Release Process
 

@@ -15,8 +15,8 @@ describe("anthropicVertexProvider", () => {
     expect(anthropicVertexProvider.apiKeyUrl).toBe("");
   });
 
-  it("defaults to claude-opus-4-6", () => {
-    expect(anthropicVertexProvider.defaultModel).toBe("claude-opus-4-6");
+  it("defaults to claude-opus-4-7", () => {
+    expect(anthropicVertexProvider.defaultModel).toBe("claude-opus-4-7");
   });
 });
 
