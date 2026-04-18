@@ -54,10 +54,14 @@ async function handleAnalyze(req: IncomingMessage, res: ServerResponse): Promise
 }
 
 /**
- * Start a stateless HTTP server for MCP over Streamable HTTP.
+ * Build the request handler used by both startHttpServer and the test suite.
+ * Exported so tests can drive the real production routing logic instead of
+ * replicating it (which is how the pre-fix bug slipped past our tests).
  */
-export function startHttpServer(createMcpServer: () => McpServer, port: number): void {
-  const httpServer = createHttpServer(async (req, res) => {
+export function createRequestHandler(
+  createMcpServer: () => McpServer
+): (req: IncomingMessage, res: ServerResponse) => Promise<void> {
+  return async (req, res) => {
     if (req.url === "/mcp") {
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
@@ -85,7 +89,14 @@ export function startHttpServer(createMcpServer: () => McpServer, port: number):
 
     res.writeHead(404);
     res.end();
-  });
+  };
+}
+
+/**
+ * Start a stateless HTTP server for MCP over Streamable HTTP.
+ */
+export function startHttpServer(createMcpServer: () => McpServer, port: number): void {
+  const httpServer = createHttpServer(createRequestHandler(createMcpServer));
 
   httpServer.listen(port, () => {
     console.log(`MCP server listening on port ${port}`);

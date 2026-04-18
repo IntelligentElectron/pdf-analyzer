@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { isGeminiFileUri, isUrl, validateLocalPath, classifySource } from "./service.js";
+import { readFileSync } from "node:fs";
+import {
+  isGeminiFileUri,
+  isUrl,
+  validateLocalPath,
+  classifySource,
+  resolveSourceBytes,
+} from "./service.js";
 import { AnalyzePdfInputSchema } from "./types.js";
 
 describe("isGeminiFileUri", () => {
@@ -159,5 +166,25 @@ describe("classifySource", () => {
   it("classifies local paths as path kind", () => {
     const result = classifySource("/tmp/doc.pdf");
     expect(result).toEqual({ kind: "path", path: "/tmp/doc.pdf" });
+  });
+});
+
+describe("resolveSourceBytes", () => {
+  // Regression: gs:// sources get converted to { kind: "bytes" } before the
+  // chunking fallback. Before the fix, the fallback cast to { kind: "path" }
+  // and crashed with "Cannot read properties of undefined (reading 'trim')".
+  it("returns the same bytes for kind: bytes", async () => {
+    const bytes = new Uint8Array([0x25, 0x50, 0x44, 0x46]); // "%PDF"
+    const out = await resolveSourceBytes({ kind: "bytes", bytes });
+    expect(out).toBe(bytes);
+  });
+
+  it("reads file contents for kind: path", async () => {
+    const path = process.cwd() + "/test/fixtures/1-pager.pdf";
+    const expected = readFileSync(path);
+    const out = await resolveSourceBytes({ kind: "path", path });
+    expect(out.byteLength).toBe(expected.byteLength);
+    expect(out[0]).toBe(0x25); // "%"
+    expect(out[1]).toBe(0x50); // "P"
   });
 });
