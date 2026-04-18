@@ -49,6 +49,13 @@ jobs:
           bun build --compile --minify --target=bun-linux-x64 --define BUILD_VERSION="\"$VERSION\"" src/index.ts --outfile bin/pdf-analyzer-linux-x64
           bun build --compile --minify --target=bun-windows-x64 --define BUILD_VERSION="\"$VERSION\"" src/index.ts --outfile bin/pdf-analyzer-windows-x64.exe
 
+          # Strip Bun's embedded ad-hoc signatures from each arch binary before
+          # lipo. Without this, `lipo -create` produces a fat binary whose
+          # signature slots are inconsistent and `codesign --force` later fails
+          # with "invalid or unsupported format for signature".
+          codesign --remove-signature bin/pdf-analyzer-darwin-arm64
+          codesign --remove-signature bin/pdf-analyzer-darwin-x64
+
           # Create macOS universal binary
           lipo -create bin/pdf-analyzer-darwin-arm64 bin/pdf-analyzer-darwin-x64 \
             -output bin/pdf-analyzer-darwin-universal
