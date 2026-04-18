@@ -15,10 +15,11 @@ const MODELS: ModelOption[] = [
     displayName: "Claude Sonnet 4.6",
     hint: "Fast and cost-effective",
   },
-  { id: "claude-opus-4-6", displayName: "Claude Opus 4.6", hint: "Best and most expensive" },
+  { id: "claude-opus-4-6", displayName: "Claude Opus 4.6", hint: "Previous flagship" },
+  { id: "claude-opus-4-7", displayName: "Claude Opus 4.7", hint: "Best and most expensive" },
 ];
 
-const DEFAULT_MODEL = "claude-opus-4-6";
+const DEFAULT_MODEL = "claude-opus-4-7";
 
 function getProject(): string {
   const p = process.env.VERTEX_PROJECT;

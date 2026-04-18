@@ -2,47 +2,17 @@ import { describe, it, expect, afterEach } from "vitest";
 import { createServer as createHttpServer } from "node:http";
 import type { Server } from "node:http";
 import { createServer } from "../server.js";
+import { createRequestHandler } from "./http.js";
 
 /**
- * Helper: start the HTTP server on a random port and return the base URL + server handle.
+ * Start an HTTP server that uses the exact production request handler.
+ * Using createRequestHandler (and not a hand-rolled copy) ensures any change
+ * in production routing is reflected in these tests.
  */
 function startTestServer(): Promise<{ baseUrl: string; server: Server }> {
   return new Promise((resolve) => {
-    const httpServer = createHttpServer();
-    // Reuse startHttpServer's logic by calling it with port 0 (random)
-    // Instead, we replicate the approach: start our own to get a handle
-    httpServer.close(); // close the dummy
-
-    // We need the actual server handle. Use a workaround: start on port 0.
-    // startHttpServer doesn't return the server, so we test at integration level.
-    // Use a direct HTTP server with the same handler pattern.
-    const { StreamableHTTPServerTransport } =
-      require("@modelcontextprotocol/sdk/server/streamableHttp.js") as typeof import("@modelcontextprotocol/sdk/server/streamableHttp.js");
-
-    const server = createHttpServer(async (req, res) => {
-      if (req.method === "POST" && req.url === "/mcp") {
-        const transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: undefined,
-        });
-        const mcpServer = createServer("http");
-        res.on("close", () => {
-          transport.close();
-          mcpServer.close();
-        });
-        await mcpServer.connect(transport);
-        await transport.handleRequest(req, res);
-        return;
-      }
-
-      if (req.method === "GET" && req.url === "/health") {
-        res.writeHead(200, { "Content-Type": "text/plain" });
-        res.end("ok");
-        return;
-      }
-
-      res.writeHead(404);
-      res.end();
-    });
+    const handler = createRequestHandler(() => createServer("http"));
+    const server = createHttpServer(handler);
 
     server.listen(0, () => {
       const addr = server.address();
@@ -110,5 +80,28 @@ describe("HTTP transport", () => {
     const body = JSON.parse(dataLine!.slice(6));
     expect(body.jsonrpc).toBe("2.0");
     expect(body.result.serverInfo.name).toBe("pdf-analyzer");
+  });
+
+  // Regression: SDK clients probe GET /mcp for SSE streaming during session
+  // setup. Before the fix, the handler only matched POST /mcp and returned
+  // 404 for GET /mcp, which clients interpreted as "SDK auth failed: HTTP 404".
+  // The handler must route any method on /mcp to the SDK transport.
+  it("GET /mcp is routed to the SDK transport, not 404", async () => {
+    const { baseUrl, server } = await startTestServer();
+    testServer = server;
+
+    const res = await fetch(`${baseUrl}/mcp`, { method: "GET" });
+    // The SDK responds with 405 (method-not-allowed for stateless mode) or
+    // 400 (bad request); the key assertion is that our router does NOT drop
+    // the request to the 404 branch.
+    expect(res.status).not.toBe(404);
+  });
+
+  it("DELETE /mcp is routed to the SDK transport, not 404", async () => {
+    const { baseUrl, server } = await startTestServer();
+    testServer = server;
+
+    const res = await fetch(`${baseUrl}/mcp`, { method: "DELETE" });
+    expect(res.status).not.toBe(404);
   });
 });

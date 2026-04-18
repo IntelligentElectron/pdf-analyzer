@@ -287,6 +287,24 @@ async function downloadFromGcs(gcsUri: string): Promise<Uint8Array> {
 }
 
 /**
+ * Resolve a non-cached PdfSource to raw bytes for chunking.
+ * The exhaustive switch catches at compile time if a new source kind is added
+ * without being handled here.
+ */
+export async function resolveSourceBytes(
+  source: Exclude<PdfSource, { kind: "cachedUri" }>
+): Promise<Uint8Array> {
+  switch (source.kind) {
+    case "url":
+      return new Uint8Array(await fetchPdfFromUrl(source.url));
+    case "bytes":
+      return source.bytes;
+    case "path":
+      return new Uint8Array(readPdfBytes(source.path));
+  }
+}
+
+/**
  * Classify a PDF source string into a typed PdfSource union.
  */
 export function classifySource(source: string): PdfSource {
@@ -351,13 +369,10 @@ export async function analyzePdf(
     );
   }
 
-  // Token limit exceeded, read bytes, split into chunks, and process via work queue
-  // At this point source is "path" or "url" (cachedUri was handled above)
-  const pdfBytes =
-    source.kind === "url"
-      ? await fetchPdfFromUrl(source.url)
-      : readPdfBytes((source as { kind: "path"; path: string }).path);
-  const initialChunk = await pdfBytesToChunk(new Uint8Array(pdfBytes));
+  // Token limit exceeded, read bytes, split into chunks, and process via work queue.
+  // At this point source is "path", "url", or "bytes" (cachedUri was handled above).
+  const pdfBytes = await resolveSourceBytes(source);
+  const initialChunk = await pdfBytesToChunk(pdfBytes);
   return processChunkQueue(provider, apiKey, modelId, [initialChunk], queries, pdf_source);
 }
 

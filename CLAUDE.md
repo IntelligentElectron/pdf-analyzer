@@ -23,7 +23,7 @@ git push -u origin <branch-name>  # Push and create PR
 Models per provider (do not change without discussion). Users choose during `--setup`:
 
 - **Google Gemini**: `gemini-3-flash-preview` (fast) / `gemini-3.1-pro-preview` (flagship)
-- **Anthropic Claude**: `claude-sonnet-4-6` (fast) / `claude-opus-4-6` (flagship)
+- **Anthropic Claude**: `claude-sonnet-4-6` (fast) / `claude-opus-4-7` (flagship) / `claude-opus-4-6` (previous flagship, still selectable)
 - **OpenAI**: `gpt-5.4-mini` (fast) / `gpt-5.4` (flagship)
 
 Thinking/reasoning is set to minimum for all models (document analysis doesn't benefit from extended thinking).
@@ -84,6 +84,26 @@ npm run type-check && npm run lint && npm test
 ## Testing with PDFs
 
 Always use `test/fixtures/1-pager.pdf` for MCP tool testing. It is small and cheap on LLM API calls. Never use `test/fixtures/oversized-doc.pdf` or other large PDFs unless the user gives explicit approval.
+
+## Deploying to Cloud Run
+
+The deploy scripts (`deploy/gcloud.sh` and `deploy/main.tf`) support every provider and both auth modes; which one runs is decided by `PDF_ANALYZER_PROVIDER` in `deploy/env` (gcloud) or `provider_id` in `terraform.tfvars`:
+
+- `google-vertex`, `anthropic-vertex` → ADC via attached service account, no API key required
+- `google`, `anthropic`, `openai` → API key pulled from a Secret Manager secret named in `API_KEY_SECRET_NAME` / `api_key_secret_name`
+
+See `deploy/README.md` for the full matrix, required IAM roles per provider, and the one-time `gcloud secrets create` command for the direct-API providers. The service is always deployed `--no-allow-unauthenticated` (private).
+
+### Running the remote MCP locally
+
+Because the service requires authenticated invocation, MCP clients connect through a local proxy that mints fresh identity tokens per request:
+
+```bash
+gcloud run services proxy <service-name> \
+  --project=<project-id> --region=<region> --port=8080
+```
+
+Point `.mcp.json`'s HTTP MCP entry at `http://localhost:8080/mcp`. When the proxy stops, the MCP disconnects until you start it again. No secrets live in `.mcp.json` — auth is handled per-request by the proxy against your ADC.
 
 ## Release Process
 

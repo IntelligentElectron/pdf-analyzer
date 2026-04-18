@@ -3,23 +3,60 @@
 #
 #   cp deploy/terraform.tfvars.example deploy/terraform.tfvars
 
-# Required: your GCP project ID
+# -----------------------------------------------------------------------------
+# Required
+# -----------------------------------------------------------------------------
+
+# Your GCP project ID.
 project_id = "my-project-123"
 
-# Optional: GCP region (default: "us-central1")
+# Provider. Pick one:
+#   google-vertex     Gemini via Vertex AI (ADC auth, no API key)
+#   anthropic-vertex  Anthropic Claude via Vertex AI (ADC auth, no API key)
+#   google            Gemini Developer API (Secret Manager key)
+#   anthropic         Anthropic direct API (Secret Manager key)
+#   openai            OpenAI API (Secret Manager key)
+provider_id = "google-vertex"
+
+# -----------------------------------------------------------------------------
+# Required only for direct-API providers (google, anthropic, openai)
+# -----------------------------------------------------------------------------
+# Name of a Secret Manager secret (in project_id) holding the API key.
+# Create it once before `terraform apply`:
+#
+#   echo -n 'YOUR_KEY' | gcloud secrets create my-pdf-analyzer-key \
+#     --project="$PROJECT" --data-file=-
+#
+# api_key_secret_name = "my-pdf-analyzer-key"
+
+# -----------------------------------------------------------------------------
+# Optional
+# -----------------------------------------------------------------------------
+
+# GCP region for Cloud Run and Artifact Registry (default: "us-central1").
 # region = "us-central1"
 
-# Optional: Vertex AI endpoint location (default: "global").
-# Use "global" for preview models (gemini-3-flash-preview, gemini-3.1-pro-preview).
-# Use a region like "us-central1" for GA models (gemini-2.5-flash).
+# Vertex AI endpoint location (ignored for non-Vertex providers).
+# "global" is recommended where supported; use a region like "us-central1"
+# or "us-east5" if a model isn't on the global endpoint.
 # vertex_location = "global"
 
-# Optional: Artifact Registry repository name (default: "pdf-analyzer").
+# Pin a specific model. Leave empty to use the provider's default.
+# Examples:
+#   google-vertex    / google   → "gemini-3.1-pro-preview"
+#   anthropic-vertex / anthropic → "claude-opus-4-7"
+#   openai                       → "gpt-5.4"
+# model_id = ""
+
+# Artifact Registry repository name (default: "pdf-analyzer").
 # ar_repository = "pdf-analyzer"
 
-# Optional: use an existing service account instead of creating one.
-# The service account must have roles/aiplatform.user and roles/storage.objectViewer.
-# service_account_email = "my-sa@my-project-123.iam.gserviceaccount.com"
-
-# Optional: container image URI. Leave empty to auto-generate.
+# Container image URI. Leave empty to auto-generate from region/project/repository.
 # image = "us-central1-docker.pkg.dev/my-project/pdf-analyzer/pdf-analyzer:latest"
+
+# Use an existing service account instead of creating one.
+# Required roles on the SA:
+#   - roles/storage.objectViewer (all providers)
+#   - roles/aiplatform.user (Vertex providers only)
+#   - roles/secretmanager.secretAccessor on api_key_secret_name (direct-API providers only)
+# service_account_email = "my-sa@my-project-123.iam.gserviceaccount.com"

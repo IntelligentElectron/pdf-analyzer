@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.2.3] - 2026-04-18
+
+### Added
+- `anthropic` and `anthropic-vertex` providers now expose `claude-opus-4-7` as the default flagship model. `claude-opus-4-6` remains selectable via `PDF_ANALYZER_MODEL`.
+- Cloud Run deployment supports all five providers (`google-vertex`, `anthropic-vertex`, `google`, `anthropic`, `openai`) via a single `PDF_ANALYZER_PROVIDER` knob; direct-API providers read their key from Secret Manager at runtime.
+
+### Fixed
+- `analyzePdf` no longer crashes when a `gs://` source falls back to chunked processing. The chunking branch now handles the `bytes` source kind via a new exhaustive `resolveSourceBytes` helper.
+- MCP Streamable HTTP: the `/mcp` route handles any method (GET/POST/DELETE) instead of POST-only. GET was previously returning 404 and causing clients to misreport "SDK auth failed".
+
+### Changed
+- Cloud Run deploys are now private by default (`--no-allow-unauthenticated`). Connect via `gcloud run services proxy` locally.
+- Cloud Build context slimmed from ~20 MiB to ~120 KiB via allowlist `.gcloudignore` / `.dockerignore`.
+- Deploy scripts (`deploy/gcloud.sh`, `deploy/main.tf`) and templates generalized for any provider + auth mode; see `deploy/README.md` for the matrix.
+- HTTP transport tests now drive the real production request handler via a new exported `createRequestHandler`; the old tests ran against an inline copy that could diverge from production.
+
+### Security
+- `.gitignore` hardened with defensive patterns for common credential, env, and build-cache leaks (`*credentials*.json`, `*service-account*.json`, `.env.*`, `*.tsbuildinfo`, etc.).
+
 ## [1.2.2] - 2026-04-08
 
 ### Added
