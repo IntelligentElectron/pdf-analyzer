@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.2.4] - 2026-05-08
+
+### Fixed
+- HTTP `/analyze` endpoint now validates request bodies against the same `AnalyzePdfInputSchema` used by the MCP path. Previously a hand-rolled truthy check accepted malformed `pdf_source` values (numbers, objects, etc.), which then crashed inside `validateLocalPath` with `Cannot read properties of undefined (reading 'trim')`. Malformed bodies now return `400` with zod's path-aware error details. (#42)
+
+### Changed
+- `src/types.ts` exports a shared `AnalyzePdfInputShape` consumed by both the MCP tool registration and the HTTP `/analyze` handler, eliminating the duplicated inline schema definitions.
+
 ## [1.2.3] - 2026-04-18
 
 ### Added
