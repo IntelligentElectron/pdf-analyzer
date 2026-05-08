@@ -12,6 +12,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { analyzePdf } from "../service.js";
+import { AnalyzePdfInputSchema } from "../types.js";
 import { resolveActiveProvider } from "../providers/registry.js";
 
 /**
@@ -33,16 +34,29 @@ function readBody(req: IncomingMessage): Promise<string> {
  * Response body: AnalyzePdfResponse JSON
  */
 async function handleAnalyze(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  let body: unknown;
   try {
-    const body = JSON.parse(await readBody(req));
-    const { pdf_source, queries } = body;
-    if (!pdf_source || !queries || !Array.isArray(queries) || queries.length === 0) {
-      res.writeHead(400, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Required: pdf_source (string) and queries (string[])" }));
-      return;
-    }
+    body = JSON.parse(await readBody(req));
+  } catch {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Request body must be valid JSON" }));
+    return;
+  }
+
+  const parsed = AnalyzePdfInputSchema.safeParse(body);
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((issue) => {
+      const pathStr = issue.path.length > 0 ? issue.path.join(".") : "(root)";
+      return `${pathStr}: ${issue.message}`;
+    });
+    res.writeHead(400, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Invalid request body", details: issues }));
+    return;
+  }
+
+  try {
     const { provider, apiKey, modelId } = await resolveActiveProvider();
-    const result = await analyzePdf(provider, apiKey, modelId, { pdf_source, queries });
+    const result = await analyzePdf(provider, apiKey, modelId, parsed.data);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(result));
   } catch (error) {

@@ -7,9 +7,9 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
 import { VERSION } from "./version.js";
 import { analyzePdf } from "./service.js";
+import { AnalyzePdfInputShape } from "./types.js";
 import { resolveActiveProvider } from "./providers/registry.js";
 // Cloud-only modules loaded lazily to avoid pulling in heavy deps in stdio mode.
 // import { startHttpServer } from "./transports/http.js";
@@ -138,17 +138,7 @@ export const createServer = (mode: "stdio" | "http" = "stdio"): McpServer => {
     "analyze_pdf",
     {
       description: mode === "http" ? ANALYZE_PDF_DESCRIPTION_HTTP : ANALYZE_PDF_DESCRIPTION_STDIO,
-      inputSchema: {
-        pdf_source: z
-          .union([z.string(), z.array(z.string().min(1)).min(1)])
-          .describe(
-            "PDF source: absolute local file path, URL, cached file URI from a previous response (Google only), or array of cached file URIs from a previous chunked response (Google only)"
-          ),
-        queries: z
-          .array(z.string().min(1))
-          .min(1)
-          .describe("Array of questions to ask about the PDF"),
-      },
+      inputSchema: AnalyzePdfInputShape,
     },
     async ({ pdf_source, queries }) => {
       try {
