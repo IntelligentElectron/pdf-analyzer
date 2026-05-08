@@ -104,4 +104,73 @@ describe("HTTP transport", () => {
     const res = await fetch(`${baseUrl}/mcp`, { method: "DELETE" });
     expect(res.status).not.toBe(404);
   });
+
+  // Regression for #42: malformed /analyze bodies were reaching analyzePdf and
+  // crashing inside validateLocalPath with "Cannot read properties of undefined
+  // (reading 'trim')". The handler now runs zod up front so callers get a
+  // descriptive 400 instead.
+  describe("POST /analyze input validation", () => {
+    async function postAnalyze(baseUrl: string, body: unknown): Promise<Response> {
+      return fetch(`${baseUrl}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    }
+
+    it("rejects missing pdf_source with 400 and a zod path", async () => {
+      const { baseUrl, server } = await startTestServer();
+      testServer = server;
+
+      const res = await postAnalyze(baseUrl, { queries: ["What is this?"] });
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: string; details: string[] };
+      expect(body.error).toBe("Invalid request body");
+      expect(body.details.join("\n")).toContain("pdf_source");
+    });
+
+    it("rejects non-string, non-array pdf_source with 400", async () => {
+      const { baseUrl, server } = await startTestServer();
+      testServer = server;
+
+      const res = await postAnalyze(baseUrl, { pdf_source: 123, queries: ["q"] });
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: string; details: string[] };
+      expect(body.details.join("\n")).toContain("pdf_source");
+    });
+
+    it("rejects empty queries array with 400", async () => {
+      const { baseUrl, server } = await startTestServer();
+      testServer = server;
+
+      const res = await postAnalyze(baseUrl, { pdf_source: "/tmp/x.pdf", queries: [] });
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: string; details: string[] };
+      expect(body.details.join("\n")).toContain("queries");
+    });
+
+    it("rejects empty-string queries with 400", async () => {
+      const { baseUrl, server } = await startTestServer();
+      testServer = server;
+
+      const res = await postAnalyze(baseUrl, { pdf_source: "/tmp/x.pdf", queries: [""] });
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: string; details: string[] };
+      expect(body.details.join("\n")).toContain("queries");
+    });
+
+    it("rejects non-JSON body with 400", async () => {
+      const { baseUrl, server } = await startTestServer();
+      testServer = server;
+
+      const res = await fetch(`${baseUrl}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "not json",
+      });
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: string };
+      expect(body.error).toContain("JSON");
+    });
+  });
 });

@@ -1,14 +1,17 @@
 import { z } from "zod";
 
-/** Schema for the analyze_pdf tool input */
-export const AnalyzePdfInputSchema = z.object({
+/** Field schemas for the analyze_pdf tool input. Shared between MCP and HTTP. */
+export const AnalyzePdfInputShape = {
   pdf_source: z
     .union([z.string(), z.array(z.string().min(1)).min(1)])
     .describe(
-      "PDF source: file path, URL, single Gemini file URI, or array of Gemini file URIs from a previous chunked response"
+      "PDF source: absolute local file path, URL, cached file URI from a previous response (Google only), or array of cached file URIs from a previous chunked response (Google only)"
     ),
   queries: z.array(z.string().min(1)).min(1).describe("Array of questions to ask about the PDF"),
-});
+};
+
+/** Schema for the analyze_pdf tool input */
+export const AnalyzePdfInputSchema = z.object(AnalyzePdfInputShape);
 
 /** Input type for the analyze_pdf tool */
 export type AnalyzePdfInput = z.infer<typeof AnalyzePdfInputSchema>;
