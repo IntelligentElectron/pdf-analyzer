@@ -84,7 +84,7 @@ When the `PORT` environment variable is set (Cloud Run sets this automatically),
 
 ### The `/mcp` Endpoint
 
-Used by MCP-aware clients (Claude Code, VS Code, Gemini CLI). The request body is a JSON-RPC message following the MCP Streamable HTTP specification. The response is an SSE stream.
+Used by MCP-aware clients (Claude Code). The request body is a JSON-RPC message following the MCP Streamable HTTP specification. The response is an SSE stream.
 
 ```bash
 curl -X POST https://your-service.run.app/mcp \
