@@ -98,33 +98,6 @@ Install [OpenAI Codex](https://developers.openai.com/codex/cli/), then run:
 codex mcp add pdf-analyzer -- pdf-analyzer
 ```
 
-### Gemini CLI
-
-Install [Gemini CLI](https://geminicli.com/docs/get-started/installation/), then run:
-
-```bash
-gemini mcp add --scope user pdf-analyzer pdf-analyzer
-```
-
-### VS Code (GitHub Copilot)
-
-Download [VS Code](https://code.visualstudio.com/)
-
-Add to `.vscode/mcp.json` in your project:
-
-```json
-{
-  "servers": {
-    "pdf-analyzer": {
-      "type": "stdio",
-      "command": "pdf-analyzer"
-    }
-  }
-}
-```
-
-Then enable it in **Configure Tools** (click the tools icon in Copilot chat).
-
 ## Usage
 
 Once connected, ask your AI assistant to analyze any PDF:
