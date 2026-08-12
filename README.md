@@ -3,7 +3,7 @@
 The **PDF Analyzer MCP Server** gives AI agents the ability to read and
 analyze PDF documents, enabling document Q&A through natural conversations.
 
-Supports multiple LLM providers: **Google Gemini**, **Anthropic Claude**, and **OpenAI**. Choose your preferred provider and model during setup.
+Supports multiple LLM providers: **Google Gemini**, **Anthropic Claude**, and **OpenAI** on their direct APIs, plus **Google Vertex AI** and **Anthropic on Vertex AI** for service-account auth. Choose your preferred provider and model during setup.
 
 ## Native Install (Recommended)
 
@@ -73,8 +73,10 @@ You'll be prompted to choose from:
 | Provider | Fast Model | Flagship Model | Get API Key |
 |----------|-----------|----------------|-------------|
 | Google Gemini | Gemini 3 Flash | Gemini 3.1 Pro | [Google AI Studio](https://aistudio.google.com/apikey) |
-| Anthropic Claude | Claude Sonnet 4.6 | Claude Opus 4.6 | [Anthropic Console](https://console.anthropic.com/settings/keys) |
+| Anthropic Claude | Claude Sonnet 4.6 | Claude Opus 4.7 | [Anthropic Console](https://console.anthropic.com/settings/keys) |
 | OpenAI GPT | GPT-5.4 Mini | GPT-5.4 | [OpenAI Platform](https://platform.openai.com/api-keys) |
+
+Claude Opus 4.6 is offered alongside 4.7 as the previous flagship. The Vertex AI providers offer the same Gemini and Claude models, and authenticate with a service account JSON key file instead of an API key.
 
 You can re-run `--setup` at any time to switch providers or models.
 
@@ -119,7 +121,15 @@ The server accepts:
 | Linux (ARM64) | `pdf-analyzer-linux-arm64` |
 | Windows (x64) | `pdf-analyzer-windows-x64.exe` |
 
+## Running as a hosted server
+
+Setting `PORT` starts the server over Streamable HTTP instead of stdio, serving MCP at `/mcp`, a direct `POST /analyze` REST endpoint, and `GET /health`.
+
+See [deploy/README.md](deploy/README.md) for deploying it to Cloud Run, including the provider and auth matrix, the IAM roles each provider needs, and how to reach the private service.
+
 ## Documentation
+
+See [docs/architecture.md](docs/architecture.md) for how the server is put together.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 

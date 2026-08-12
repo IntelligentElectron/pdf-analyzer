@@ -10,8 +10,8 @@ Both modes expose the same `analyze_pdf` tool. The difference is how the client 
 ┌─────────────┐    stdin/stdout    ┌────────────────┐     API call     ┌─────────────┐
 │  MCP Client  │ ◄──────────────► │  pdf-analyzer   │ ──────────────► │  LLM Provider │
 │  (e.g. Claude│                   │  (child process)│                  │  (Gemini, etc)│
-│   Code, VS   │                   │                 │                  │               │
-│   Code, etc) │                   │  reads local    │                  └───────────────┘
+│   Code,      │                   │                 │                  │               │
+│   Codex)     │                   │  reads local    │                  └───────────────┘
 └──────────────┘                   │  files directly │
                                    └─────────────────┘
 ```
@@ -23,7 +23,7 @@ The MCP client spawns `pdf-analyzer` as a child process. Communication happens o
 1. The client starts `pdf-analyzer` as a subprocess
 2. Client sends a JSON-RPC request over stdin (e.g., `tools/call` with `analyze_pdf`)
 3. The server reads the PDF from disk or fetches it from a URL
-4. The server sends the PDF to the configured LLM provider (Google Gemini, Anthropic Claude, or OpenAI) using the provider's API key stored in the OS credential store
+4. The server sends the PDF to the configured LLM provider (Google Gemini, Anthropic Claude, or OpenAI) using the provider's API key stored in the OS credential store. The Vertex AI providers authenticate with a service account JSON key file instead
 5. The server writes the JSON-RPC response to stdout
 
 **PDF sources supported:**

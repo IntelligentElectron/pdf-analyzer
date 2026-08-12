@@ -41,7 +41,8 @@ export const printHelp = (): void => {
 ${BINARY_NAME} v${VERSION}
 
 MCP server for analyzing PDF documents using AI.
-Supports Google Gemini, Google Vertex AI, Anthropic Claude, and OpenAI.
+Supports Google Gemini, Anthropic Claude, and OpenAI, plus Google Vertex AI
+and Anthropic on Vertex AI.
 
 USAGE:
   ${BINARY_NAME} [OPTIONS]
