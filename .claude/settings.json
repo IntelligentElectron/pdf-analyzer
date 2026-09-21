@@ -1,18 +1,4 @@
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/ts-check.sh",
-            "timeout": 30000
-          }
-        ]
-      }
-    ]
-  },
   "enabledPlugins": {
     "playwright@claude-plugins-official": true
   }
