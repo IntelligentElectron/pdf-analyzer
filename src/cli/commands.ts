@@ -82,8 +82,13 @@ MORE INFO:
 
 /**
  * Check if a clack prompt was cancelled (Ctrl+C).
+ *
+ * Narrows with `Exclude<T, symbol>` rather than taking `T | symbol`. Clack
+ * types its cancel value as a `unique symbol`, which does not bind to a plain
+ * `symbol` slot, so inference used to hand `T` the whole union and the
+ * assertion narrowed nothing.
  */
-function assertNotCancelled<T>(value: T | symbol): asserts value is T {
+function assertNotCancelled<T>(value: T): asserts value is Exclude<T, symbol> {
   if (clack.isCancel(value)) {
     clack.cancel("Setup cancelled.");
     process.exit(0);
