@@ -118,7 +118,7 @@ In the Firestore console (or via Terraform `google_firestore_field`): set a TTL 
    - Call `analyze_pdf_async` with a small fixture, confirm response in <2s and a valid `job_id`.
    - Immediately call `get_pdf_analysis_status`, expect `pending` or `running`.
    - Poll every 5s until `succeeded`; compare `result` to a synchronous `analyze_pdf` run on the same fixture. They should match.
-5. **Long PDF**: same flow with a known >2-min PDF (with user approval; do **not** use `oversized-doc.pdf` without explicit OK per `pdf-analyzer/CLAUDE.md`). Confirm Claude Code does not time out and the final result is returned via the polling tool.
+5. **Long PDF**: same flow with a known >2-min PDF (with user approval; do **not** use `oversized-doc.pdf` without explicit OK per `pdf-analyzer/AGENTS.md`). Confirm Claude Code does not time out and the final result is returned via the polling tool.
 6. **Failure path**: submit with a bogus `pdf_source`. Worker should mark the job `failed` with an error message; `get_pdf_analysis_status` returns it cleanly without a 5xx.
 7. **Idempotency**: manually re-invoke `/jobs/worker` for an already-`succeeded` job (curl through the proxy). Should be a no-op, not double-charge for LLM tokens.
 8. **Cloud logs**: verify the submit request returns in <1s in `logName="run.googleapis.com%2Frequests"`, and the worker request shows a separate, longer-lived span.
